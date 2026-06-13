@@ -21,6 +21,13 @@ http://t5frame.local        (or the device IP shown on screen)
 
 ---
 
+## Screenshot
+
+<img src="docs/screenshot-metrics.png" width="300" alt="Metrics dashboard: city, sunrise, temperature, 3-day forecast, and rotating Tech + regional headlines">
+
+*Metrics dashboard, captured live from `/api/fb`. In the web UI, **Settings → 📷
+Screenshot** saves the current screen as a PNG.*
+
 ## Hardware
 
 | | |
@@ -144,6 +151,7 @@ All POST bodies are JSON unless noted.
 | Method | Path | Body | Action |
 |---|---|---|---|
 | GET  | `/api/status` | — | Full state: settings, photos, IP, heap, FS, version |
+| GET  | `/api/fb` | — | Raw 960×540 4-bit framebuffer (for screenshots) |
 | POST | `/api/upload?name=<f>.bin` | raw bytes | Upload a 259200-byte 4-bit framebuffer |
 | POST | `/api/update` | raw `firmware.bin` | OTA firmware update, then reboot |
 | POST | `/api/photo/show` | `{"name":"x.bin"}` | Pin + display a photo |

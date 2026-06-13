@@ -3,6 +3,7 @@
 #include "settings.h"
 #include "storage.h"
 #include "modes.h"
+#include "display.h"
 #include "web_assets.h"
 #include <WiFi.h>
 #include <LittleFS.h>
@@ -120,6 +121,14 @@ static void registerMainRoutes() {
     });
     s_server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *r) {
         r->send(200, "application/json", statusJson());
+    });
+
+    // Raw current framebuffer (960x540, 4-bit) — the web UI converts it to a
+    // portrait PNG for screenshots.
+    s_server.on("/api/fb", HTTP_GET, [](AsyncWebServerRequest *r) {
+        uint8_t *fb = Display::fb();
+        if (!fb) { r->send(503); return; }
+        r->send(r->beginResponse_P(200, "application/octet-stream", fb, FB_SIZE));
     });
 
     // Photo upload: POST raw bytes to /api/upload?name=foo.bin

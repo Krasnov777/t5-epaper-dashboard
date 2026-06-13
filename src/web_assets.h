@@ -158,10 +158,12 @@ small{color:var(--mut)}
       <div class="kv"><span>Firmware</span><b id="sVer">—</b></div>
       <div class="kv"><span>Free memory</span><b id="sHeap">—</b></div>
       <div class="kv"><span>Storage</span><b id="sFs">—</b></div>
-      <div style="display:flex;gap:8px;margin-top:12px">
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="ghost" id="shot">📷 Screenshot</button>
         <button class="ghost" id="refreshNow">↻ Repaint display</button>
         <button class="ghost" id="reboot">⏻ Reboot</button>
       </div>
+      <canvas id="shotcv" width="270" height="480" hidden></canvas>
     </div>
     <div class="card">
       <h2>Firmware update (OTA)</h2>
@@ -368,6 +370,20 @@ $('#showM').onclick=async()=>{await saveMetrics();await post('/api/mode',{mode:1
 // ---- settings ----
 $('#refreshNow').onclick=()=>post('/api/refresh',{});
 $('#reboot').onclick=()=>{if(confirm('Reboot device?'))post('/api/reboot',{});};
+$('#shot').onclick=async()=>{
+  const buf=new Uint8Array(await (await fetch('/api/fb')).arrayBuffer());
+  if(buf.length<NW*NH/2){alert('No framebuffer available');return;}
+  const cv=$('#shotcv'); cv.hidden=false; cv.width=PW; cv.height=PH;
+  const ctx=cv.getContext('2d'), img=ctx.createImageData(PW,PH);
+  for(let ly=0;ly<PH;ly++)for(let lx=0;lx<PW;lx++){
+    let PX,PY; if(PORTRAIT_CW){PX=ly;PY=NH-1-lx;}else{PX=NW-1-ly;PY=lx;}
+    const byte=buf[PY*(NW/2)+(PX>>1)];
+    const v=((PX&1)?(byte>>4):(byte&0x0F))*17;
+    const o=(ly*PW+lx)*4; img.data[o]=img.data[o+1]=img.data[o+2]=v; img.data[o+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+  cv.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='t5-screenshot.png';a.click();});
+};
 let fwFile=null;
 $('#fw').onchange=e=>{fwFile=e.target.files[0];$('#doFw').disabled=!fwFile;};
 $('#doFw').onclick=async()=>{
