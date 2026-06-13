@@ -1,0 +1,16 @@
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Editors / tooling
+.vscode/
+.idea/
+.claude/
+
+# OS
+.DS_Store
+*.swp
+
+# Device-side runtime data (never in the repo)
+settings.json
