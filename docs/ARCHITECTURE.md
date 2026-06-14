@@ -1,6 +1,7 @@
 # T5 Smart E-Paper Frame — Architecture
 
 Internal developer documentation. For user-facing setup/usage see [`../README.md`](../README.md).
+Public repo: <https://github.com/Krasnov777/t5-epaper-dashboard> · current firmware `FW_VERSION` 1.4.1.
 
 ---
 
@@ -133,11 +134,12 @@ Each render (every `metricsRefresh` minutes, default 15):
 3. **News** — two user-configured RSS/Atom feeds (label + URL each, chosen from a
    category catalog or custom). Streamed first ~17 KB, naive
    `<item>…<title>` scan, entity decode. `setFollowRedirects` (feeds 301).
-4. **Layout** (portrait 540×960): header (city + next sun event), big temperature
-   + condition icon, humidity/wind, 3-day forecast (hand-drawn weather icons),
-   one **rotating** Tech headline + one NL headline (word-wrapped), centered
-   footer with update time. A static counter advances the headline index each
-   refresh.
+4. **Layout** (portrait 540×960): header (city + **next** sun event icon/time),
+   big temperature + condition icon, humidity/wind, 3-day forecast (hand-drawn
+   weather icons), then the **two configured news blocks** — one **rotating**
+   word-wrapped headline each — and a centered footer with the update time. A
+   static counter advances the headline index each refresh; the "next sun event"
+   is sunrise/sunset/next-day-sunrise depending on the current time.
 
 All HTTPS via `WiFiClientSecure::setInsecure()`.
 
@@ -151,6 +153,7 @@ the async-tcp task to `loop()` via flags (`Web::loopTasks()`).
 | Method | Path | Body | Action |
 |---|---|---|---|
 | GET  | `/api/status` | — | settings, photos, ip, heap, fs, version, current photo |
+| GET  | `/api/fb` | — | live 960×540 4-bit framebuffer (web UI → portrait PNG screenshot) |
 | POST | `/api/upload?name=x.bin` | raw bytes | store a 259 200-byte framebuffer |
 | POST | `/api/update` | raw `firmware.bin` | OTA (Update.h) then reboot |
 | POST | `/api/photo/show` | `{name}` | pin + display |
@@ -164,6 +167,11 @@ the async-tcp task to `loop()` via flags (`Web::loopTasks()`).
 
 > Upload route is `/api/upload`, **not** `/api/photo` — the latter prefix-collided
 > with `/api/photo/*` in ESPAsyncWebServer's route matching.
+
+**Screenshots:** `GET /api/fb` returns the raw framebuffer; the web UI (Settings →
+📷 Screenshot) reverses the portrait transform and exports a PNG. The repo image
+`docs/screenshot-metrics.png` was generated the same way via a pure-Python PNG
+writer fetching `/api/fb`.
 
 ---
 
