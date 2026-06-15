@@ -1,7 +1,7 @@
 # T5 Smart E-Paper Frame
 
 Firmware for the **LilyGo T5 4.7" E-Paper V2.3 (ESP32-S3)** that turns the
-display into a Wi-Fi controlled device with two modes:
+display into a Wi-Fi controlled device with three modes:
 
 1. **Photo frame** — upload images from a browser; they're shown as a slideshow.
 2. **Digest** — live local weather (Open-Meteo, no API key), sunrise/sunset, and
@@ -66,14 +66,17 @@ If nothing appears: swap the cable, then tap the **RST** button.
 
 ```bash
 # Build only (validates everything compiles)
-pio run
+pio run -e T5-ePaper-S3
 
 # Build + flash over USB
-pio run -t upload
+pio run -e T5-ePaper-S3 -t upload
 
 # Watch serial logs (115200 baud)
 pio device monitor
 ```
+
+> Always pass `-e T5-ePaper-S3` — a bare `pio run` also builds the
+> `T5-ePaper-S3-ota` env, which can't flash over USB (it targets `t5frame.local`).
 
 The board definition lives in `boards/T5-ePaper-S3.json`; the partition layout
 (`partitions_custom.csv`) gives ~8.8 MB of LittleFS for photos plus dual-OTA app
@@ -114,16 +117,16 @@ brick the board — it falls back to the previous slot.
    panel and printed to serial).
 
 > Hold the on-board button (**GPIO21**) for ~2.5 s at any time to erase Wi-Fi and
-> return to setup mode. A short press toggles Photo ↔ Metrics.
+> return to setup mode. A short press cycles **Photos → Digest → Smart Home**.
 
 ---
 
 ## Using it
 
 ### Photo frame
-- **Photos** tab → choose an image. It's resized to 960×540, converted to
-  grayscale and **dithered in your browser** (Floyd–Steinberg), with brightness
-  / contrast / fit (crop vs letterbox) controls and a live preview.
+- **Photos** tab → choose an image. It's resized to portrait **540×960**,
+  converted to grayscale and **dithered in your browser** (Floyd–Steinberg), with
+  brightness / contrast / fit (crop vs letterbox) controls and a live preview.
 - **Upload to frame** stores it on the device.
 - The gallery lets you **Show** a specific photo or **Delete** it.
 - Set the **slideshow interval** and hit **Cycle all photos** to rotate through
@@ -132,8 +135,8 @@ brick the board — it falls back to the previous slot.
 Because dithering happens in the browser, the device just stores and blits ready
 4-bit framebuffers — fast, and no on-device JPEG decoding.
 
-### Metrics dashboard (portrait)
-- **Metrics** tab → set your **location** (type lat/lon or hit *Use my
+### Digest — weather & news (portrait)
+- **Digest** tab → set your **location** (type lat/lon or hit *Use my
   location*), choose **two news blocks** (pick a type — Tech / World / Business /
   Science / Sport / Regional — from the dropdown, or "Custom…" for any RSS/Atom
   feed), set the **refresh interval** and a POSIX **timezone**.
@@ -150,6 +153,18 @@ Because dithering happens in the browser, the device just stores and blits ready
 the next headline every `metricsRefresh` minutes (default **15**). Each refresh
 fully repaints the e-paper, so don't set it too low.
 
+### Smart Home — Home Assistant tiles
+- **Smart Home** tab → enter your HA base URL + a **long-lived token**, then
+  configure the four **tiles**. Each tile has a **type** (Climate / Temperature /
+  Humidity / Storage / Voltage / Power / Battery / CO₂ / Pressure / Custom — sets
+  unit & format), a free-text **label**, a **pickable icon** (visual picker,
+  ~45 icons), and the HA **`entity_id`** (plus a 2nd entity for humidity on the
+  Climate type).
+- The weather block stays on top; the lower 2×2 grid shows the tiles, refreshed on
+  the same interval as Digest.
+- Full setup + controlling the frame from HA (`rest_command`): see
+  [docs/home-assistant.md](docs/home-assistant.md).
+
 ---
 
 ## HTTP API (for automation)
@@ -165,7 +180,7 @@ All POST bodies are JSON unless noted.
 | POST | `/api/photo/show` | `{"name":"x.bin"}` | Pin + display a photo |
 | POST | `/api/photo/delete` | `{"name":"x.bin"}` | Delete a photo |
 | POST | `/api/photo/cycle` | `{}` | Un-pin → slideshow cycles all |
-| POST | `/api/mode` | `{"mode":0\|1\|2}` | 0 = photo, 1 = metrics, 2 = home |
+| POST | `/api/mode` | `{"mode":0\|1\|2}` | 0 = Photos, 1 = Digest, 2 = Smart Home |
 | POST | `/api/settings` | partial settings | Update + persist settings |
 | POST | `/api/refresh` | `{}` | Redraw current mode now |
 | POST | `/api/wifi` | `{"wifiSsid":..,"wifiPass":..}` | Set Wi-Fi + reboot |
@@ -188,14 +203,16 @@ src/
   settings.{h,cpp}          persistent settings (settings.json)
   display.{h,cpp}           LilyGo-EPD47 wrapper + framebuffer
   storage.{h,cpp}           LittleFS photo store
-  metrics.{h,cpp}           Open-Meteo + RSS fetch + native rendering
-  modes.{h,cpp}             slideshow / metrics timers + dispatch
+  metrics.{h,cpp}           Open-Meteo + geocode + RSS fetch + Digest layout (shared top block)
+  homeassistant.{h,cpp}     Smart Home mode: HA REST tiles + type/icon catalog
+  icons.h                   Material Design Icons subset (GFXfont) — weather + tile icons
+  modes.{h,cpp}             slideshow / refresh timers + mode dispatch
   web.{h,cpp}               async server + JSON/upload API
   web_assets.h              embedded SPA + setup page (PROGMEM)
   main.cpp                  boot, Wi-Fi onboarding, button, loop
 docs/
   ARCHITECTURE.md           internal developer documentation (module map, pipelines, gotchas)
-  home-assistant.md         HA control (mode switching) + Home/zones setup
+  home-assistant.md         HA control (mode switching) + Smart Home tiles setup
 ```
 
 For the full architecture (rendering engine, photo/metrics pipelines, data
@@ -208,8 +225,10 @@ formats, lessons learned) see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 - **Battery:** the device stays awake to serve the web UI. For battery use you'd
   add deep-sleep between refreshes (the panel keeps its image with no power), at
   the cost of the always-on web server.
-- **Bigger fonts:** rendering uses the bundled `FiraSans`. A larger font for the
-  temperature can be generated with epdiy's `fontconvert` script.
+- **Fonts & icons:** text is the bundled `FiraSans`, rendered by a custom blitter
+  that rotates it into portrait and **scales it to any size** (so the temperature
+  is drawn large from the same font). Icons are a Material Design Icons subset;
+  add more by extending the codepoint list and re-running `fontconvert`.
 - **Server-rendered dashboards:** if you later want pixel-perfect HTML/CSS
   dashboards, render them to a 540×960 portrait image on a server you run,
   convert to the 4-bit format above, and POST to `/api/upload` + `/api/photo/show`.

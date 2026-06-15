@@ -75,7 +75,7 @@ static void startNormalMode() {
 
 static void onTap(Button2 &) {
     if (s_apMode) return;
-    Modes::setMode(g_settings.mode == MODE_PHOTO ? MODE_METRICS : MODE_PHOTO);
+    Modes::setMode((g_settings.mode + 1) % 3);   // cycle Photos -> Digest -> Smart Home
 }
 
 static void onLong(Button2 &) {
