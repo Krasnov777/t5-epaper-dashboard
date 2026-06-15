@@ -26,13 +26,15 @@ http://t5frame.local        (or the device IP shown on screen)
 
 ---
 
-## Screenshot
+## Screenshots — the three modes
 
-<img src="docs/screenshot-metrics.png" width="270" alt="Metrics dashboard: city, sunrise, temperature, 3-day forecast, and rotating headlines">&nbsp;&nbsp;<img src="docs/screenshot-home.png" width="270" alt="Home dashboard: weather on top, 2x2 indoor zone grid from Home Assistant">
+<img src="docs/screenshot-photos.png" width="240" alt="Photos mode — browser-dithered image on the e-paper"> <img src="docs/screenshot-metrics.png" width="240" alt="Digest mode — city, sunrise/sunset, temperature, 3-day forecast, rotating headlines"> <img src="docs/screenshot-home.png" width="240" alt="Smart Home mode — weather on top, 2x2 grid of Home Assistant metric tiles">
 
-*Left: metrics dashboard. Right: Home dashboard (weather + indoor zones from Home
-Assistant). Captured live from `/api/fb` — in the web UI, **Settings → 📷
-Screenshot** saves the current screen as a PNG.*
+*Left → right: **Photos** (browser-dithered image), **Digest** (weather +
+sunrise/sunset + rotating news headlines), **Smart Home** (Home Assistant metric
+tiles). All captured live from `/api/fb`; in the web UI, **Settings → 📷
+Screenshot** exports the current screen as a PNG. (Photo sample via
+[Lorem Picsum](https://picsum.photos).)*
 
 ## Hardware
 
