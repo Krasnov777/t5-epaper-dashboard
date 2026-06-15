@@ -1,7 +1,7 @@
 # T5 Smart E-Paper Frame — Architecture
 
 Internal developer documentation. For user-facing setup/usage see [`../README.md`](../README.md).
-Public repo: <https://github.com/Krasnov777/t5-epaper-dashboard> · current firmware `FW_VERSION` 1.4.1.
+Public repo: <https://github.com/Krasnov777/t5-epaper-dashboard> · current firmware `FW_VERSION` 1.9.1.
 
 ---
 
@@ -11,11 +11,14 @@ Firmware for a **LilyGo T5 4.7" E-Paper V2.3 (ESP32-S3)** mounted **vertically**
 It's a Wi-Fi appliance with a built-in web UI and two display modes:
 
 - **Photo frame** — browser-dithered images shown as a slideshow.
-- **Metrics dashboard** — Open-Meteo weather + sunrise/sunset + two rotating RSS
-  headlines from user-chosen feeds, drawn natively on the panel.
-- **Home dashboard** — the shared weather top block + a 2×2 indoor-zone grid
-  (temperature/humidity) pulled from Home Assistant's REST API. See
-  [`home-assistant.md`](home-assistant.md).
+- **Digest** (`MODE_METRICS`) — Open-Meteo weather + sunrise/sunset + two rotating
+  RSS headlines from user-chosen feeds, drawn natively on the panel.
+- **Smart Home** (`MODE_HOME`) — the shared weather top block + a 2×2 grid of
+  configurable metric tiles (type + icon + label) pulled from Home Assistant's
+  REST API. See [`home-assistant.md`](home-assistant.md).
+
+(UI mode names: **Photos / Digest / Smart Home**; the code enum is
+`MODE_PHOTO/MODE_METRICS/MODE_HOME`.)
 
 Design principles:
 - **Self-contained**: the device fetches its own data; no companion server.
@@ -34,7 +37,7 @@ Design principles:
 | MCU | ESP32-S3-WROOM-1-N16R8 — 16 MB flash, 8 MB PSRAM, native USB |
 | Panel | ED047TC1, **960×540 landscape**, 16-level grayscale, parallel (epdiy-style) |
 | Mount | **Portrait** → logical canvas is **540×960** |
-| Button | `BUTTON_1` = GPIO21 (short press = toggle mode; 2.5 s hold = forget Wi-Fi) |
+| Button | `BUTTON_1` = GPIO21 (short press = cycle Photos→Digest→Smart Home; 2.5 s hold = forget Wi-Fi) |
 
 The 4.7" panel is **not** SPI/GxEPD2 — it's driven by the parallel `LilyGo-EPD47`
 library (esp32s3 branch), which also bundles the FiraSans font and pin map

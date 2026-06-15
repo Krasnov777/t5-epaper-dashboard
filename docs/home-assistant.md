@@ -13,10 +13,10 @@ if mDNS isn't reachable from HA):
 ```yaml
 # configuration.yaml
 rest_command:
-  t5_mode_photo:   { url: "http://t5frame.local/api/mode", method: POST, content_type: "application/json", payload: '{"mode":0}' }
-  t5_mode_metrics: { url: "http://t5frame.local/api/mode", method: POST, content_type: "application/json", payload: '{"mode":1}' }
-  t5_mode_home:    { url: "http://t5frame.local/api/mode", method: POST, content_type: "application/json", payload: '{"mode":2}' }
-  t5_refresh:      { url: "http://t5frame.local/api/refresh", method: POST, content_type: "application/json", payload: '{}' }
+  t5_mode_photos:     { url: "http://t5frame.local/api/mode", method: POST, content_type: "application/json", payload: '{"mode":0}' }  # Photos
+  t5_mode_digest:     { url: "http://t5frame.local/api/mode", method: POST, content_type: "application/json", payload: '{"mode":1}' }  # Digest
+  t5_mode_smarthome:  { url: "http://t5frame.local/api/mode", method: POST, content_type: "application/json", payload: '{"mode":2}' }  # Smart Home
+  t5_refresh:         { url: "http://t5frame.local/api/refresh", method: POST, content_type: "application/json", payload: '{}' }
 ```
 
 Optional — a dashboard dropdown that drives the mode:
@@ -25,7 +25,7 @@ Optional — a dashboard dropdown that drives the mode:
 input_select:
   t5_frame_mode:
     name: T5 Frame Mode
-    options: [Photo, Metrics, Home]
+    options: [Photos, Digest, Smart Home]
 
 automation:
   - alias: T5 Frame mode switch
@@ -34,12 +34,12 @@ automation:
         entity_id: input_select.t5_frame_mode
     action:
       - choose:
-          - conditions: "{{ states('input_select.t5_frame_mode') == 'Photo' }}"
-            sequence: [{ service: rest_command.t5_mode_photo }]
-          - conditions: "{{ states('input_select.t5_frame_mode') == 'Metrics' }}"
-            sequence: [{ service: rest_command.t5_mode_metrics }]
-          - conditions: "{{ states('input_select.t5_frame_mode') == 'Home' }}"
-            sequence: [{ service: rest_command.t5_mode_home }]
+          - conditions: "{{ states('input_select.t5_frame_mode') == 'Photos' }}"
+            sequence: [{ service: rest_command.t5_mode_photos }]
+          - conditions: "{{ states('input_select.t5_frame_mode') == 'Digest' }}"
+            sequence: [{ service: rest_command.t5_mode_digest }]
+          - conditions: "{{ states('input_select.t5_frame_mode') == 'Smart Home' }}"
+            sequence: [{ service: rest_command.t5_mode_smarthome }]
 ```
 
 Optional — surface device status as a sensor:
@@ -54,14 +54,15 @@ sensor:
     scan_interval: 300
 ```
 
-Now you can switch modes from a dashboard or automations (e.g. *Home* mode in the
-morning, *Photo* in the evening, *Metrics* when you wake).
+Now you can switch modes from a dashboard or automations (e.g. *Smart Home* in the
+morning, *Photos* in the evening, *Digest* when you wake).
 
 ---
 
-## 2. Home mode — metric tiles from HA
+## 2. Smart Home mode — metric tiles from HA
 
-`MODE_HOME` keeps the weather block on top and shows a **2×2 grid of tiles**.
+The **Smart Home** mode (`MODE_HOME`) keeps the weather block on top and shows a
+**2×2 grid of tiles**.
 Each tile shows **one metric** from any HA entity — not just rooms. Pick a
 **type** per tile; the type sets the icon, unit and formatting:
 
