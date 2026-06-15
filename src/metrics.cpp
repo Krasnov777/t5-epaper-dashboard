@@ -330,20 +330,11 @@ static String cityName() {
     return s_city.length() ? s_city : g_settings.locationName;
 }
 
-void render(const String &ip) {
-    static uint32_t s_rot = 0;     // rotates the displayed headline each refresh
-
-    WeatherData wd = fetchWeather();
-    String a[MAX_HEADLINES], b[MAX_HEADLINES];
-    int nA = fetchNews(g_settings.news1Url, a, MAX_HEADLINES);
-    int nB = fetchNews(g_settings.news2Url, b, MAX_HEADLINES);
-    String line1 = nA ? a[s_rot % nA] : String();
-    String line2 = nB ? b[s_rot % nB] : String();
-
+// Header + current weather + 3-day forecast (shared by metrics & home modes).
+// Assumes the buffer was already cleared. Returns the y where content begins.
+int drawTopBlock(const WeatherData &wd) {
     const int M = 24;
     const int W = SCREEN_W - 2 * M;   // 492
-
-    Display::clearBuffer();
 
     // ===== Header =====
     Display::text(M, 50, cityName(), true);
@@ -380,18 +371,33 @@ void render(const String &ip) {
             Display::textCentered(M + i * colW, 432, colW, String(r), false, 0.68f);
         }
     }
+    return 500;   // content area (news / zones) starts here
+}
 
-    // ===== News (one rotating headline per block) =====
-    int y = 500;
+void drawFooter() {
+    const int M = 24, W = SCREEN_W - 2 * M;
+    Display::hLine(M, SCREEN_H - 40, W, 0);
+    Display::textCentered(0, SCREEN_H - 14, SCREEN_W, "Updated " + nowClock(), false, 0.6f);
+}
+
+void render(const String &ip) {
+    (void)ip;
+    static uint32_t s_rot = 0;     // rotates the displayed headline each refresh
+
+    WeatherData wd = fetchWeather();
+    String a[MAX_HEADLINES], b[MAX_HEADLINES];
+    int nA = fetchNews(g_settings.news1Url, a, MAX_HEADLINES);
+    int nB = fetchNews(g_settings.news2Url, b, MAX_HEADLINES);
+    String line1 = nA ? a[s_rot % nA] : String();
+    String line2 = nB ? b[s_rot % nB] : String();
+
+    const int M = 24, W = SCREEN_W - 2 * M;
+    Display::clearBuffer();
+    int y = drawTopBlock(wd);
     y = drawNewsBlock(y, g_settings.news1Label, line1, W, M);
     y += 30;
     y = drawNewsBlock(y, g_settings.news2Label, line2, W, M);
-
-    // ===== Footer (centered update time) =====
-    (void)ip;
-    Display::hLine(M, SCREEN_H - 40, W, 0);
-    Display::textCentered(0, SCREEN_H - 14, SCREEN_W, "Updated " + nowClock(), false, 0.6f);
-
+    drawFooter();
     Display::commit();
     s_rot++;   // advance headline rotation for the next refresh
 }

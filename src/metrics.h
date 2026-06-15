@@ -37,4 +37,11 @@ int fetchNews(const String &url, String out[], int maxItems);
 // `ip` is shown in the footer.
 void render(const String &ip);
 
+// Shared building blocks (also used by the Home/zones mode):
+// draws header + current weather + 3-day forecast into the (cleared) buffer and
+// returns the y where the content area below begins.
+int  drawTopBlock(const WeatherData &wd);
+// Centered "Updated HH:MM" footer.
+void drawFooter();
+
 }  // namespace Metrics

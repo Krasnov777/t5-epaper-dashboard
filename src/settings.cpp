@@ -24,9 +24,21 @@ static void docToSettings(JsonDocument &doc) {
     if (doc["metricsRefresh"].is<uint32_t>())   g_settings.metricsRefresh = doc["metricsRefresh"].as<uint32_t>();
     if (doc["tz"].is<const char *>())           g_settings.tz           = doc["tz"].as<String>();
 
+    // Home Assistant
+    if (doc["haUrl"].is<const char *>())   g_settings.haUrl   = doc["haUrl"].as<String>();
+    if (doc["haToken"].is<const char *>()) g_settings.haToken = doc["haToken"].as<String>();
+    if (doc["zones"].is<JsonArray>()) {
+        JsonArray z = doc["zones"].as<JsonArray>();
+        for (int i = 0; i < NUM_ZONES && i < (int)z.size(); i++) {
+            if (z[i]["label"].is<const char *>()) g_settings.zoneLabel[i] = z[i]["label"].as<String>();
+            if (z[i]["temp"].is<const char *>())  g_settings.zoneTemp[i]  = z[i]["temp"].as<String>();
+            if (z[i]["hum"].is<const char *>())   g_settings.zoneHum[i]   = z[i]["hum"].as<String>();
+        }
+    }
+
     if (g_settings.slideshowSec < 5)   g_settings.slideshowSec = 5;
     if (g_settings.metricsRefresh < 1) g_settings.metricsRefresh = 1;
-    if (g_settings.mode > MODE_METRICS) g_settings.mode = MODE_PHOTO;
+    if (g_settings.mode > MODE_HOME) g_settings.mode = MODE_PHOTO;
 }
 
 static void settingsToDoc(JsonDocument &doc, bool includeSecrets) {
@@ -44,6 +56,16 @@ static void settingsToDoc(JsonDocument &doc, bool includeSecrets) {
     doc["news2Url"]       = g_settings.news2Url;
     doc["metricsRefresh"] = g_settings.metricsRefresh;
     doc["tz"]             = g_settings.tz;
+
+    doc["haUrl"] = g_settings.haUrl;
+    if (includeSecrets) doc["haToken"] = g_settings.haToken;
+    JsonArray z = doc["zones"].to<JsonArray>();
+    for (int i = 0; i < NUM_ZONES; i++) {
+        JsonObject o = z.add<JsonObject>();
+        o["label"] = g_settings.zoneLabel[i];
+        o["temp"]  = g_settings.zoneTemp[i];
+        o["hum"]   = g_settings.zoneHum[i];
+    }
 }
 
 bool settingsLoad() {

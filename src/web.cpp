@@ -36,6 +36,7 @@ static String statusJson() {
     JsonDocument sd;
     deserializeJson(sd, settingsToJson());
     doc["settings"] = sd;
+    doc["haTokenSet"] = g_settings.haToken.length() > 0;   // never expose the token itself
 
     JsonArray arr = doc["photos"].to<JsonArray>();
     for (auto &name : Storage::listPhotos()) {
@@ -157,7 +158,7 @@ static void registerMainRoutes() {
         r->send(200, "application/json", "{\"ok\":true}");
     });
     addJson("/api/mode", [](AsyncWebServerRequest *r, JsonVariant &j) {
-        g_settings.mode = j["mode"].as<uint8_t>() > MODE_METRICS ? MODE_PHOTO : j["mode"].as<uint8_t>();
+        g_settings.mode = j["mode"].as<uint8_t>() > MODE_HOME ? MODE_PHOTO : j["mode"].as<uint8_t>();
         settingsSave();
         s_renderDirty = true;
         r->send(200, "application/json", "{\"ok\":true}");

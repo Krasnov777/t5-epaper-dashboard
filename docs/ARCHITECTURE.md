@@ -13,6 +13,9 @@ It's a Wi-Fi appliance with a built-in web UI and two display modes:
 - **Photo frame** — browser-dithered images shown as a slideshow.
 - **Metrics dashboard** — Open-Meteo weather + sunrise/sunset + two rotating RSS
   headlines from user-chosen feeds, drawn natively on the panel.
+- **Home dashboard** — the shared weather top block + a 2×2 indoor-zone grid
+  (temperature/humidity) pulled from Home Assistant's REST API. See
+  [`home-assistant.md`](home-assistant.md).
 
 Design principles:
 - **Self-contained**: the device fetches its own data; no companion server.
@@ -71,7 +74,8 @@ pio device monitor                   # serial @115200
 | `settings.{h,cpp}` | `Settings` struct ↔ `/settings.json` (LittleFS); legacy-key migration |
 | `display.{h,cpp}` | **Portrait engine**: logical→panel transform, primitives, custom rotated/scaled text blitter |
 | `storage.{h,cpp}` | LittleFS photo store (list/read/delete, FS usage) |
-| `metrics.{h,cpp}` | Open-Meteo, reverse geocode, RSS, and the portrait dashboard layout + weather icons |
+| `metrics.{h,cpp}` | Open-Meteo, reverse geocode, RSS, weather icons; shared `drawTopBlock()`/`drawFooter()` + the metrics layout |
+| `homeassistant.{h,cpp}` | Home mode: pulls zone temp/humidity from HA REST, draws the 2×2 zone grid + room icons |
 | `modes.{h,cpp}` | Mode state machine + slideshow / metrics-refresh timers |
 | `web.{h,cpp}` | Async HTTP server: JSON API, photo upload, OTA upload |
 | `web_assets.h` | Embedded SPA (`INDEX_HTML`) + onboarding page (`SETUP_HTML`) in PROGMEM |

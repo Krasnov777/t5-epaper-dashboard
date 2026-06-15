@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 // Firmware version (shown in the UI / status, handy for confirming OTA worked).
-#define FW_VERSION "1.4.1"
+#define FW_VERSION "1.5.1"
 
 // ---- Display geometry (LilyGo T5 4.7" V2.3 / ED047TC1) ----
 // The panel is physically 960 x 540, 4-bit grayscale (16 levels), addressed in
@@ -36,7 +36,10 @@ static constexpr size_t  PHOTO_BYTES = FB_SIZE;
 enum DisplayMode : uint8_t {
     MODE_PHOTO   = 0,
     MODE_METRICS = 1,
+    MODE_HOME    = 2,   // weather top + Home Assistant indoor zones
 };
+
+static constexpr int NUM_ZONES = 4;
 
 // ---- Defaults ----
 static constexpr uint32_t DEFAULT_SLIDESHOW_SEC    = 600;   // 10 min

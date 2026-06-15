@@ -43,6 +43,7 @@ canvas{width:100%;max-width:240px;border:1px solid var(--line);border-radius:8px
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .chip{font-size:12px;padding:4px 9px;border:1px solid var(--line);border-radius:999px;background:#0e1117;color:var(--ink);cursor:pointer}
 .chip:hover{border-color:var(--acc)}
+.zrow{display:flex;gap:6px;margin-bottom:8px}.zrow input{flex:1;min-width:0}
 .muted{color:var(--mut);font-size:13px}
 .ok{color:#5fd38d}.err{color:#ff6b6b}
 .kv{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding:7px 0;font-size:13px}
@@ -61,12 +62,14 @@ small{color:var(--mut)}
 </header>
 <main>
   <div class="seg" id="modeSeg">
-    <button data-mode="0">🖼️ Photo frame</button>
+    <button data-mode="0">🖼️ Photos</button>
     <button data-mode="1">📊 Metrics</button>
+    <button data-mode="2">🏠 Home</button>
   </div>
   <nav>
     <button data-t="photos" class="active">Photos</button>
     <button data-t="metrics">Metrics</button>
+    <button data-t="home">Home</button>
     <button data-t="settings">Settings</button>
   </nav>
 
@@ -140,6 +143,27 @@ small{color:var(--mut)}
         <button class="act alt" id="showM" style="width:100%">Save &amp; show now</button>
       </div>
       <span id="mMsg" class="muted"></span>
+    </div>
+  </section>
+
+  <!-- HOME (HA zones) -->
+  <section id="t-home" hidden>
+    <div class="card">
+      <h2>Home Assistant</h2>
+      <p class="sub">The Home mode shows indoor zones read from HA's REST API. In HA: profile → Security → create a <b>Long-Lived Access Token</b>.</p>
+      <label>HA base URL</label><input id="haUrl" placeholder="http://homeassistant.local:8123">
+      <label>Long-lived token <span id="haTokState" class="muted"></span></label>
+      <input id="haToken" type="password" placeholder="(unchanged)">
+    </div>
+    <div class="card">
+      <h2>Zones</h2>
+      <p class="sub">Per zone: a label, a temperature sensor <code>entity_id</code>, and an optional humidity sensor.</p>
+      <div id="zones"></div>
+      <div class="row">
+        <button class="act" id="saveHome" style="width:100%">Save</button>
+        <button class="act alt" id="showHome" style="width:100%">Save &amp; show now</button>
+      </div>
+      <span id="hMsg" class="muted"></span>
     </div>
   </section>
 
@@ -218,7 +242,7 @@ function setCat(catSel,url){
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
   b.classList.add('active');
-  ['photos','metrics','settings'].forEach(t=>$('#t-'+t).hidden=(t!==b.dataset.t));
+  ['photos','metrics','home','settings'].forEach(t=>$('#t-'+t).hidden=(t!==b.dataset.t));
 });
 // ---- mode switch ----
 document.querySelectorAll('#modeSeg button').forEach(b=>b.onclick=()=>post('/api/mode',{mode:+b.dataset.mode}).then(load));
@@ -228,7 +252,7 @@ async function load(){
   status=await (await fetch('/api/status')).json();
   const s=status.settings;
   $('#pIp').textContent=status.ip; $('#sIp').textContent=status.ip;
-  $('#pMode').textContent=s.mode==1?'📊 Metrics':'🖼️ Photo';
+  $('#pMode').textContent=s.mode==1?'📊 Metrics':s.mode==2?'🏠 Home':'🖼️ Photo';
   $('#pVer').textContent=status.version||'—';
   const fs=(status.fsUsed/1048576).toFixed(1)+'/'+(status.fsTotal/1048576).toFixed(1)+' MB';
   $('#pFs').textContent=fs; $('#sFs').textContent=fs;
@@ -245,13 +269,28 @@ async function load(){
   $('#n2label').value=s.news2Label; $('#n2url').value=s.news2Url;
   setCat('#n1cat',s.news1Url); setCat('#n2cat',s.news2Url);
   $('#refresh').value=s.metricsRefresh; $('#tz').value=s.tz;
+  $('#haUrl').value=s.haUrl||'';
+  $('#haTokState').textContent=status.haTokenSet?'· set (blank = keep)':'· not set';
+  buildZones();
   renderGallery();
+}
+function buildZones(){
+  const z=(status.settings.zones)||[];
+  let h='';
+  for(let i=0;i<4;i++){const zz=z[i]||{};
+    const esc=v=>(v||'').replace(/"/g,'&quot;');
+    h+=`<div class="zrow"><input id="z${i}l" placeholder="Label" value="${esc(zz.label)}">`
+      +`<input id="z${i}t" placeholder="temp entity_id" value="${esc(zz.temp)}">`
+      +`<input id="z${i}h" placeholder="humidity (optional)" value="${esc(zz.hum)}"></div>`;
+  }
+  $('#zones').innerHTML=h;
 }
 function renderGallery(){
   const g=$('#gallery'); g.innerHTML='';
   const s=status.settings;
   $('#cnt').textContent='('+status.photos.length+')';
-  $('#curState').textContent = s.mode==1 ? 'Metrics mode is active.'
+  $('#curState').textContent = s.mode==2 ? 'Home mode is active.'
+    : s.mode==1 ? 'Metrics mode is active.'
     : s.pinnedPhoto ? ('Showing: '+s.pinnedPhoto+' (pinned)')
     : (status.photos.length ? ('Cycling all photos every '+s.slideshowSec+'s') : 'No photos yet — upload one above.');
   status.photos.forEach(p=>{
@@ -366,6 +405,18 @@ async function saveMetrics(){
 }
 $('#saveM').onclick=async()=>{await saveMetrics();$('#mMsg').textContent='Saved ✓';$('#mMsg').className='ok';load();};
 $('#showM').onclick=async()=>{await saveMetrics();await post('/api/mode',{mode:1});$('#mMsg').textContent='Rendering on the frame…';$('#mMsg').className='ok';load();};
+
+// ---- home (HA zones) ----
+async function saveHome(){
+  const zones=[];
+  for(let i=0;i<4;i++)zones.push({label:$('#z'+i+'l').value,temp:$('#z'+i+'t').value,hum:$('#z'+i+'h').value});
+  const body={haUrl:$('#haUrl').value,zones};
+  if($('#haToken').value)body.haToken=$('#haToken').value;
+  await post('/api/settings',body);
+  $('#haToken').value='';
+}
+$('#saveHome').onclick=async()=>{await saveHome();$('#hMsg').textContent='Saved ✓';$('#hMsg').className='ok';load();};
+$('#showHome').onclick=async()=>{await saveHome();await post('/api/mode',{mode:2});$('#hMsg').textContent='Rendering on the frame…';$('#hMsg').className='ok';load();};
 
 // ---- settings ----
 $('#refreshNow').onclick=()=>post('/api/refresh',{});

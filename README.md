@@ -7,6 +7,9 @@ display into a Wi-Fi controlled device with two modes:
 2. **Metrics dashboard** — live local weather (Open-Meteo, no API key),
    sunrise/sunset, and two rotating news headlines from feeds you choose (any
    RSS/Atom), drawn natively on the panel in **portrait** orientation.
+3. **Home dashboard** — the same weather block on top, with a 2×2 grid of indoor
+   **zones** (temperature + humidity) pulled from **Home Assistant**. See
+   [docs/home-assistant.md](docs/home-assistant.md).
 
 Works in any region: set your coordinates and pick news feeds in the web UI —
 the weather, sunrise/sunset and city name are all derived automatically.
@@ -23,9 +26,10 @@ http://t5frame.local        (or the device IP shown on screen)
 
 ## Screenshot
 
-<img src="docs/screenshot-metrics.png" width="300" alt="Metrics dashboard: city, sunrise, temperature, 3-day forecast, and rotating Tech + regional headlines">
+<img src="docs/screenshot-metrics.png" width="270" alt="Metrics dashboard: city, sunrise, temperature, 3-day forecast, and rotating headlines">&nbsp;&nbsp;<img src="docs/screenshot-home.png" width="270" alt="Home dashboard: weather on top, 2x2 indoor zone grid from Home Assistant">
 
-*Metrics dashboard, captured live from `/api/fb`. In the web UI, **Settings → 📷
+*Left: metrics dashboard. Right: Home dashboard (weather + indoor zones from Home
+Assistant). Captured live from `/api/fb` — in the web UI, **Settings → 📷
 Screenshot** saves the current screen as a PNG.*
 
 ## Hardware
@@ -157,7 +161,7 @@ All POST bodies are JSON unless noted.
 | POST | `/api/photo/show` | `{"name":"x.bin"}` | Pin + display a photo |
 | POST | `/api/photo/delete` | `{"name":"x.bin"}` | Delete a photo |
 | POST | `/api/photo/cycle` | `{}` | Un-pin → slideshow cycles all |
-| POST | `/api/mode` | `{"mode":0\|1}` | 0 = photo, 1 = metrics |
+| POST | `/api/mode` | `{"mode":0\|1\|2}` | 0 = photo, 1 = metrics, 2 = home |
 | POST | `/api/settings` | partial settings | Update + persist settings |
 | POST | `/api/refresh` | `{}` | Redraw current mode now |
 | POST | `/api/wifi` | `{"wifiSsid":..,"wifiPass":..}` | Set Wi-Fi + reboot |
@@ -187,6 +191,7 @@ src/
   main.cpp                  boot, Wi-Fi onboarding, button, loop
 docs/
   ARCHITECTURE.md           internal developer documentation (module map, pipelines, gotchas)
+  home-assistant.md         HA control (mode switching) + Home/zones setup
 ```
 
 For the full architecture (rendering engine, photo/metrics pipelines, data

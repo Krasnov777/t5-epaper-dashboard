@@ -4,6 +4,7 @@
 #include "display.h"
 #include "storage.h"
 #include "metrics.h"
+#include "homeassistant.h"
 #include <WiFi.h>
 
 namespace Modes {
@@ -39,19 +40,20 @@ static void renderPhoto() {
     s_lastPhoto = millis();
 }
 
-static void renderMetrics() {
-    String ip = (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString() : String("offline");
-    Metrics::render(ip);
-    s_lastMetrics = millis();
+static String currentIp() {
+    return (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString() : String("offline");
 }
+static void renderMetrics() { Metrics::render(currentIp()); s_lastMetrics = millis(); }
+static void renderHome()    { HomeMode::render(currentIp()); s_lastMetrics = millis(); }
 
 void renderCurrent() {
-    if (g_settings.mode == MODE_METRICS) renderMetrics();
-    else renderPhoto();
+    if      (g_settings.mode == MODE_METRICS) renderMetrics();
+    else if (g_settings.mode == MODE_HOME)    renderHome();
+    else                                      renderPhoto();
 }
 
 void setMode(uint8_t mode) {
-    g_settings.mode = (mode > MODE_METRICS) ? MODE_PHOTO : mode;
+    g_settings.mode = (mode > MODE_HOME) ? MODE_PHOTO : mode;
     settingsSave();
     renderCurrent();
 }
@@ -85,9 +87,9 @@ void tick() {
                 s_lastPhoto = now;   // 0 or 1 photo: nothing to advance
             }
         }
-    } else {  // MODE_METRICS
+    } else {  // MODE_METRICS or MODE_HOME — periodic refresh
         if ((now - s_lastMetrics) >= g_settings.metricsRefresh * 60UL * 1000UL) {
-            renderMetrics();
+            renderCurrent();
         }
     }
 }

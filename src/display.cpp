@@ -28,17 +28,17 @@ uint8_t *fb() { return s_fb; }
 void clearBuffer() { if (s_fb) memset(s_fb, 0xFF, FB_SIZE); }
 
 void flashClean() {
-    epd_poweron(); epd_clear(); epd_poweroff();
+    epd_poweron(); epd_clear(); epd_poweroff_all();   // fully drop the EPD rail (PWM_EN) — also kills the blue LED on battery
 }
 void render() {
     if (!s_fb) return;
     Rect_t area = {0, 0, PANEL_W, PANEL_H};
-    epd_poweron(); epd_draw_grayscale_image(area, s_fb); epd_poweroff();
+    epd_poweron(); epd_draw_grayscale_image(area, s_fb); epd_poweroff_all();   // fully drop the EPD rail (PWM_EN) — also kills the blue LED on battery
 }
 void commit() {
     if (!s_fb) return;
     Rect_t area = {0, 0, PANEL_W, PANEL_H};
-    epd_poweron(); epd_clear(); epd_draw_grayscale_image(area, s_fb); epd_poweroff();
+    epd_poweron(); epd_clear(); epd_draw_grayscale_image(area, s_fb); epd_poweroff_all();   // fully drop the EPD rail (PWM_EN) — also kills the blue LED on battery
 }
 
 // ---- portrait pixel: logical (x,y) -> native panel framebuffer ----

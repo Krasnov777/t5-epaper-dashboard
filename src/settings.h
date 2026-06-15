@@ -29,6 +29,13 @@ struct Settings {
     uint32_t metricsRefresh  = DEFAULT_METRICS_REFRESH;  // minutes
     String   tz              = "GMT0BST,M3.5.0/1,M10.5.0";    // POSIX TZ (set via web UI)
 
+    // Home Assistant integration (MODE_HOME — indoor climate zones)
+    String   haUrl    = "";   // e.g. http://homeassistant.local:8123
+    String   haToken  = "";   // long-lived access token (write-only; never returned)
+    String   zoneLabel[NUM_ZONES] = {"Downstairs", "Living Room", "Upstairs", "Bedroom"};
+    String   zoneTemp[NUM_ZONES]  = {"", "", "", ""};   // temperature sensor entity_ids
+    String   zoneHum[NUM_ZONES]   = {"", "", "", ""};   // humidity sensor entity_ids
+
     bool     hasWifi() const { return wifiSsid.length() > 0; }
 };
 
