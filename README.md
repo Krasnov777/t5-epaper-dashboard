@@ -213,4 +213,5 @@ formats, lessons learned) see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 ## Credits
 - [LilyGo-EPD47](https://github.com/Xinyuan-LilyGO/LilyGo-EPD47) display driver
 - [ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer)
-- [Open-Meteo](https://open-meteo.com) weather API
+- [Open-Meteo](https://open-meteo.com) weather API · [BigDataCloud](https://www.bigdatacloud.com) reverse geocoding
+- Icons: [Material Design Icons](https://pictogrammers.com/library/mdi/) (Apache-2.0), subset into a GFXfont via the EPD `fontconvert` tool

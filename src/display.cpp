@@ -1,6 +1,7 @@
 #include "display.h"
 #include "epd_driver.h"
 #include "firasans.h"          // bundled FiraSans GFXfont (compressed)
+#include "icons.h"             // Material Design Icons subset GFXfont (Icons)
 #include <esp_heap_caps.h>
 
 // zlib symbol (linked via LilyGo-EPD47's bundled zlib) — used to decompress
@@ -118,18 +119,18 @@ static uint32_t utf8Next(const char *&p) {
     return cp;
 }
 
-static void drawGlyph(GFXglyph *g, int penX, int baseY, float scale) {
+static void drawGlyph(const GFXfont *font, GFXglyph *g, int penX, int baseY, float scale) {
     int bw = g->width / 2 + g->width % 2;
     unsigned long sz = (unsigned long)bw * g->height;
     if (sz == 0) return;
     uint8_t *bmp;
-    bool comp = FONT->compressed;
+    bool comp = font->compressed;
     if (comp) {
         bmp = (uint8_t *)malloc(sz);
         if (!bmp) return;
-        uncompress(bmp, &sz, &FONT->bitmap[g->data_offset], g->compressed_size);
+        uncompress(bmp, &sz, &font->bitmap[g->data_offset], g->compressed_size);
     } else {
-        bmp = (uint8_t *)&FONT->bitmap[g->data_offset];
+        bmp = (uint8_t *)&font->bitmap[g->data_offset];
     }
     if (scale == 1.0f) {
         for (int gy = 0; gy < g->height; gy++) {
@@ -169,11 +170,23 @@ int text(int x, int y, const String &s, bool bold, float scale) {
         GFXglyph *g = nullptr;
         get_glyph(FONT, cp, &g);
         if (!g) continue;
-        drawGlyph(g, (int)(cx + 0.5f), y, scale);
-        if (bold) drawGlyph(g, (int)(cx + 0.5f) + 1, y, scale);
+        drawGlyph(FONT, g, (int)(cx + 0.5f), y, scale);
+        if (bold) drawGlyph(FONT, g, (int)(cx + 0.5f) + 1, y, scale);
         cx += g->advance_x * scale;
     }
     return (int)(cx + 0.5f);
+}
+
+void icon(uint32_t codepoint, int cx, int cy, float scale) {
+    if (!s_fb) return;
+    GFXglyph *g = nullptr;
+    get_glyph(&Icons, codepoint, &g);
+    if (!g) return;
+    int w = (int)(g->width * scale + 0.5f);
+    int h = (int)(g->height * scale + 0.5f);
+    int penX = cx - w / 2 - (int)(g->left * scale + 0.5f);
+    int baseY = cy - h / 2 + (int)(g->top * scale + 0.5f);
+    drawGlyph(&Icons, g, penX, baseY, scale);
 }
 
 int textWidth(const String &s, float scale) {

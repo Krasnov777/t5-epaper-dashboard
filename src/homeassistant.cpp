@@ -46,44 +46,16 @@ static bool getState(const String &entity, float &out) {
     return true;
 }
 
-// ---------- zone icons (logical portrait coords) ----------
-static void iconSofa(int cx, int cy, int s) {
-    int w = 2 * s, h = s;
-    Display::drawRect(cx - s, cy - h / 2 - 6, w, 10, 0);     // backrest
-    Display::drawRect(cx - s, cy - 2, w, h, 0);              // seat block
-    Display::fillRect(cx - s, cy - 8, 5, h + 6, 0);       // left arm
-    Display::fillRect(cx + s - 5, cy - 8, 5, h + 6, 0);   // right arm
-    Display::vLine(cx - s + 5, cy + h - 2, 5, 0);
-    Display::vLine(cx + s - 5, cy + h - 2, 5, 0);
-}
-static void iconBed(int cx, int cy, int s) {
-    int w = 2 * s, h = s;
-    Display::fillRect(cx - s, cy - h / 2 - 4, 5, h + 10, 0);  // headboard
-    Display::drawRect(cx - s, cy, w, h, 0);                       // mattress
-    Display::drawRect(cx - s + 7, cy + 3, s - 2, h / 2, 0);       // pillow
-    Display::vLine(cx - s + 2, cy + h, 5, 0);
-    Display::vLine(cx + s - 2, cy + h, 5, 0);
-}
-static void iconStairs(int cx, int cy, int s, bool up) {
-    int steps = 3, u = (2 * s) / steps;
-    for (int k = 0; k < steps; k++) {
-        int x = cx - s + k * u;
-        int y = up ? (cy + s - k * u) : (cy - s + k * u);
-        Display::hLine(x, y, u, 0);                       // tread
-        if (up) Display::vLine(x, y - u, u, 0);           // riser
-        else    Display::vLine(x + u, y, u, 0);
-    }
-    int ax = cx - s - 3;                                  // direction chevron
-    if (up) { Display::line(ax, cy + s, ax + 5, cy + s - 6, 0); Display::line(ax + 5, cy + s - 6, ax + 10, cy + s, 0); }
-    else    { Display::line(ax, cy - s, ax + 5, cy - s + 6, 0); Display::line(ax + 5, cy - s + 6, ax + 10, cy - s, 0); }
-}
+// ---------- zone icons (Material Design Icons, by zone index) ----------
 static void drawZoneIcon(int kind, int cx, int cy, int s) {
+    uint32_t cp;
     switch (kind) {
-        case 0: iconStairs(cx, cy, s, false); break;  // Downstairs
-        case 1: iconSofa(cx, cy, s);          break;  // Living Room
-        case 2: iconStairs(cx, cy, s, true);  break;  // Upstairs
-        default: iconBed(cx, cy, s);          break;  // Bedroom
+        case 0:  cp = Display::Icon::STAIRS_DOWN; break;  // Downstairs
+        case 1:  cp = Display::Icon::SOFA;        break;  // Living Room
+        case 2:  cp = Display::Icon::STAIRS_UP;   break;  // Upstairs
+        default: cp = Display::Icon::BED;         break;  // Bedroom
     }
+    Display::icon(cp, cx, cy, s / 30.0f);
 }
 static void drawDroplet(int x, int y, int s) {
     Display::drawCircle(x, y, s, 0);

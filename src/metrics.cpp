@@ -31,55 +31,27 @@ const char *weatherDesc(int code) {
     }
 }
 
-// ---------- weather icons (drawn in logical portrait coords) ----------
-static void iconSun(int cx, int cy, int s) {
-    Display::drawCircle(cx, cy, s, 0);
-    Display::drawCircle(cx, cy, s - 1, 0);
-    for (int a = 0; a < 360; a += 45) {
-        float r = a * 3.14159f / 180.0f;
-        int x0 = cx + (int)((s + 5) * cosf(r)), y0 = cy + (int)((s + 5) * sinf(r));
-        int x1 = cx + (int)((s + 13) * cosf(r)), y1 = cy + (int)((s + 13) * sinf(r));
-        Display::line(x0, y0, x1, y1, 0);
-    }
-}
-
-static void iconCloud(int cx, int cy, int s, uint8_t gray) {
-    Display::fillCircle(cx - s, cy, s * 2 / 3, gray);
-    Display::fillCircle(cx + s, cy, s * 3 / 4, gray);
-    Display::fillCircle(cx, cy - s / 2, s, gray);
-    Display::fillRect(cx - s, cy, 2 * s, s * 3 / 4, gray);
-    // soft outline along the bottom
-    Display::hLine(cx - s, cy + s * 3 / 4 - 1, 2 * s, 0);
-}
-
-static void drawWeatherIcon(int cx, int cy, int s, int code) {
+// ---------- weather icons (Material Design Icons) ----------
+static uint32_t weatherCp(int code) {
     switch (code) {
-        case 0:
-            iconSun(cx, cy, s); break;
-        case 1: case 2:
-            iconSun(cx - s / 2, cy - s / 2, s * 2 / 3);
-            iconCloud(cx + s / 3, cy + s / 4, s * 2 / 3, 0xC0); break;
-        case 3: case 45: case 48:
-            iconCloud(cx, cy, s, 0x90); break;
-        case 51: case 53: case 55: case 61: case 63: case 65:
-        case 80: case 81: case 82: case 66: case 67:
-            iconCloud(cx, cy - s / 4, s * 3 / 4, 0xB0);
-            for (int i = -1; i <= 1; i++)
-                Display::line(cx + i * s / 2, cy + s / 2, cx + i * s / 2 - 5, cy + s, 0);
-            break;
+        case 0:  return Display::Icon::SUNNY;
+        case 1: case 2:  return Display::Icon::PARTLY;
+        case 3:  return Display::Icon::CLOUDY;
+        case 45: case 48: return Display::Icon::FOG;
+        case 51: case 53: case 55: case 61: case 63: case 66: case 67:
+                 return Display::Icon::RAINY;
+        case 65: case 80: case 81: case 82: return Display::Icon::POURING;
         case 71: case 73: case 75: case 77: case 85: case 86:
-            iconCloud(cx, cy - s / 4, s * 3 / 4, 0xB0);
-            for (int i = -1; i <= 1; i++) Display::fillCircle(cx + i * s / 2, cy + s * 3 / 4, 3, 0);
-            break;
-        case 95: case 96: case 99:
-            iconCloud(cx, cy - s / 4, s * 3 / 4, 0x80);
-            Display::line(cx, cy + s / 3, cx - 7, cy + s * 3 / 4, 0);
-            Display::line(cx - 7, cy + s * 3 / 4, cx + 4, cy + s * 3 / 4, 0);
-            Display::line(cx + 4, cy + s * 3 / 4, cx - 3, cy + s + 6, 0);
-            break;
-        default:
-            iconCloud(cx, cy, s, 0xA0); break;
+                 return Display::Icon::SNOWY;
+        case 95: return Display::Icon::LIGHTNING;
+        case 96: case 99: return Display::Icon::LIGHTNING_RAINY;
+        default: return Display::Icon::CLOUDY;
     }
+}
+// `s` keeps the old call sites working: it's the rough icon radius; the MDI
+// glyph (~70 px tall at scale 1.0) is scaled to match.
+static void drawWeatherIcon(int cx, int cy, int s, int code) {
+    Display::icon(weatherCp(code), cx, cy, s / 38.0f);
 }
 
 // ---------- date helpers ----------
@@ -251,30 +223,7 @@ static int hhmmToMin(const String &t) {
     return t.substring(0, 2).toInt() * 60 + t.substring(3, 5).toInt();
 }
 
-// A modern sun-on-horizon icon. rising=true -> outline sun + up arrow (sunrise);
-// rising=false -> filled sun + down arrow (sunset). cx,cy = icon centre.
-static void drawSunEvent(int cx, int cy, int s, bool rising) {
-    int hy = cy + s / 3;             // horizon line height
-    int r  = s;
-    if (rising) { Display::drawCircle(cx, hy, r, 0); Display::drawCircle(cx, hy, r - 1, 0); }
-    else        { Display::fillCircle(cx, hy, r, 0x40); }
-    // clip everything below the horizon
-    Display::fillRect(cx - r - 14, hy + 1, 2 * r + 28, r + 24, 255);
-    // rays over the upper hemisphere
-    const float dirs[5][2] = {{0, -1}, {-0.72f, -0.72f}, {0.72f, -0.72f}, {-1, -0.18f}, {1, -0.18f}};
-    for (auto &d : dirs)
-        Display::line(cx + (int)(d[0] * (r + 5)), hy + (int)(d[1] * (r + 5)),
-                      cx + (int)(d[0] * (r + 13)), hy + (int)(d[1] * (r + 13)), 0);
-    // horizon
-    Display::hLine(cx - r - 8, hy, 2 * r + 16, 0);
-    // direction arrow below the horizon
-    int by = hy + 9;
-    Display::vLine(cx, by, 12, 0);
-    if (rising) { Display::line(cx - 5, by + 5, cx, by, 0);      Display::line(cx, by, cx + 5, by + 5, 0); }
-    else        { Display::line(cx - 5, by + 7, cx, by + 12, 0); Display::line(cx, by + 12, cx + 5, by + 7, 0); }
-}
-
-// Draw the NEXT sun event (icon + label + time) right-aligned in the header.
+// Draw the NEXT sun event (MDI icon + label + time) right-aligned in the header.
 static void drawNextSunEvent(const WeatherData &wd, int M) {
     int nm = nowMinutes();
     int sr = hhmmToMin(wd.sunrise), ss = hhmmToMin(wd.sunset);
@@ -286,9 +235,9 @@ static void drawNextSunEvent(const WeatherData &wd, int M) {
     } else { rising = false; t = wd.sunset; }
     if (t.length() == 0) return;
 
-    int cx = SCREEN_W - M - 26, cy = 54;
-    drawSunEvent(cx, cy, 18, rising);
-    int tx = cx - 32;
+    int cx = SCREEN_W - M - 24, cy = 52;
+    Display::icon(rising ? Display::Icon::SUNSET_UP : Display::Icon::SUNSET_DOWN, cx, cy, 0.5f);
+    int tx = cx - 42;
     Display::textRight(tx, 42, rising ? "Sunrise" : "Sunset", false, 0.62f);
     Display::textRight(tx, 80, t, true, 0.95f);
 }
