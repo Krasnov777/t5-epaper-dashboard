@@ -27,12 +27,22 @@ static void docToSettings(JsonDocument &doc) {
     // Home Assistant
     if (doc["haUrl"].is<const char *>())   g_settings.haUrl   = doc["haUrl"].as<String>();
     if (doc["haToken"].is<const char *>()) g_settings.haToken = doc["haToken"].as<String>();
+    // Legacy zones (temp+humidity) -> tiles
     if (doc["zones"].is<JsonArray>()) {
         JsonArray z = doc["zones"].as<JsonArray>();
         for (int i = 0; i < NUM_ZONES && i < (int)z.size(); i++) {
-            if (z[i]["label"].is<const char *>()) g_settings.zoneLabel[i] = z[i]["label"].as<String>();
-            if (z[i]["temp"].is<const char *>())  g_settings.zoneTemp[i]  = z[i]["temp"].as<String>();
-            if (z[i]["hum"].is<const char *>())   g_settings.zoneHum[i]   = z[i]["hum"].as<String>();
+            if (z[i]["label"].is<const char *>()) g_settings.tileLabel[i]   = z[i]["label"].as<String>();
+            if (z[i]["temp"].is<const char *>())  g_settings.tileEntity[i]  = z[i]["temp"].as<String>();
+            if (z[i]["hum"].is<const char *>())   g_settings.tileEntity2[i] = z[i]["hum"].as<String>();
+        }
+    }
+    if (doc["tiles"].is<JsonArray>()) {
+        JsonArray t = doc["tiles"].as<JsonArray>();
+        for (int i = 0; i < NUM_ZONES && i < (int)t.size(); i++) {
+            if (t[i]["type"].is<const char *>())    g_settings.tileType[i]    = t[i]["type"].as<String>();
+            if (t[i]["label"].is<const char *>())   g_settings.tileLabel[i]   = t[i]["label"].as<String>();
+            if (t[i]["entity"].is<const char *>())  g_settings.tileEntity[i]  = t[i]["entity"].as<String>();
+            if (t[i]["entity2"].is<const char *>()) g_settings.tileEntity2[i] = t[i]["entity2"].as<String>();
         }
     }
 
@@ -59,12 +69,13 @@ static void settingsToDoc(JsonDocument &doc, bool includeSecrets) {
 
     doc["haUrl"] = g_settings.haUrl;
     if (includeSecrets) doc["haToken"] = g_settings.haToken;
-    JsonArray z = doc["zones"].to<JsonArray>();
+    JsonArray t = doc["tiles"].to<JsonArray>();
     for (int i = 0; i < NUM_ZONES; i++) {
-        JsonObject o = z.add<JsonObject>();
-        o["label"] = g_settings.zoneLabel[i];
-        o["temp"]  = g_settings.zoneTemp[i];
-        o["hum"]   = g_settings.zoneHum[i];
+        JsonObject o = t.add<JsonObject>();
+        o["type"]    = g_settings.tileType[i];
+        o["label"]   = g_settings.tileLabel[i];
+        o["entity"]  = g_settings.tileEntity[i];
+        o["entity2"] = g_settings.tileEntity2[i];
     }
 }
 

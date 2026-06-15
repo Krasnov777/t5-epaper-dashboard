@@ -46,34 +46,54 @@ static bool getState(const String &entity, float &out) {
     return true;
 }
 
-// ---------- zone icons (Material Design Icons, by zone index) ----------
-static void drawZoneIcon(int kind, int cx, int cy, int s) {
-    uint32_t cp;
-    switch (kind) {
-        case 0:  cp = Display::Icon::STAIRS_DOWN; break;  // Downstairs
-        case 1:  cp = Display::Icon::SOFA;        break;  // Living Room
-        case 2:  cp = Display::Icon::STAIRS_UP;   break;  // Upstairs
-        default: cp = Display::Icon::BED;         break;  // Bedroom
-    }
-    Display::icon(cp, cx, cy, s / 30.0f);
+// ---------- metric-type catalog (keep keys in sync with web_assets.h) ----------
+struct MetricType {
+    const char *key;
+    uint32_t    icon;
+    const char *unit;
+    int         decimals;
+    bool        secondary;   // show entity2 as a "%" line (humidity-style)
+};
+static const MetricType TYPES[] = {
+    {"room_living", Display::Icon::SOFA,        "°",     1, true},
+    {"room_bed",    Display::Icon::BED,         "°",     1, true},
+    {"room_down",   Display::Icon::STAIRS_DOWN, "°",     1, true},
+    {"room_up",     Display::Icon::STAIRS_UP,   "°",     1, true},
+    {"temperature", Display::Icon::THERMO,      "°",     1, false},
+    {"humidity",    Display::Icon::WATER,       "%",     0, false},
+    {"storage",     Display::Icon::HARDDISK,    "%",     0, false},
+    {"storage_gb",  Display::Icon::HARDDISK,    " GB",   0, false},
+    {"voltage",     Display::Icon::FLASH,       " V",    1, false},
+    {"power",       Display::Icon::POWER_PLUG,  " W",    0, false},
+    {"battery",     Display::Icon::BATTERY,     "%",     0, false},
+    {"co2",         Display::Icon::CO2,         " ppm",  0, false},
+    {"pressure",    Display::Icon::GAUGE,       " hPa",  0, false},
+    {"custom",      Display::Icon::GAUGE,       "",      1, false},
+};
+static const MetricType &typeFor(const String &key) {
+    for (auto &t : TYPES) if (key == t.key) return t;
+    return TYPES[sizeof(TYPES) / sizeof(TYPES[0]) - 1];   // custom
 }
+
 static void drawDroplet(int x, int y, int s) {
     Display::drawCircle(x, y, s, 0);
     Display::line(x - s + 1, y - 1, x, y - 2 * s, 0);
     Display::line(x + s - 1, y - 1, x, y - 2 * s, 0);
 }
 
-static void drawZoneCell(int cx, int cy, int cw, const String &label, int kind, const Reading &r) {
-    drawZoneIcon(kind, cx + 32, cy + 30, 18);
-    Display::text(cx + 64, cy + 24, Display::fitText(label, cw - 72, 0.62f), false, 0.62f);
+static void drawTileCell(int cx, int cy, int cw, const String &label, const MetricType &mt,
+                         bool ok, float v, bool secOk, float sv) {
+    Display::icon(mt.icon, cx + 34, cy + 30, 0.6f);
+    Display::text(cx + 66, cy + 24, Display::fitText(label, cw - 74, 0.62f), false, 0.62f);
 
-    char t[16];
-    if (r.tOk) snprintf(t, sizeof(t), "%.1f°", r.t); else snprintf(t, sizeof(t), "--");
-    Display::text(cx + 16, cy + 100, String(t), true, 1.4f);
+    char val[24];
+    if (ok) snprintf(val, sizeof(val), "%.*f%s", mt.decimals, v, mt.unit);
+    else    snprintf(val, sizeof(val), "--");
+    Display::text(cx + 16, cy + 100, String(val), true, 1.4f);
 
-    if (r.hOk) {
+    if (mt.secondary && secOk) {
         drawDroplet(cx + 22, cy + 138, 6);
-        char hh[12]; snprintf(hh, sizeof(hh), "%d%%", (int)(r.h + 0.5f));
+        char hh[12]; snprintf(hh, sizeof(hh), "%d%%", (int)(sv + 0.5f));
         Display::text(cx + 38, cy + 146, String(hh), false, 0.72f);
     }
 }
@@ -82,29 +102,27 @@ void render(const String &ip) {
     (void)ip;
     Metrics::WeatherData wd = Metrics::fetchWeather();
 
-    Reading z[NUM_ZONES];
-    for (int i = 0; i < NUM_ZONES; i++) {
-        z[i].tOk = getState(g_settings.zoneTemp[i], z[i].t);
-        z[i].hOk = getState(g_settings.zoneHum[i],  z[i].h);
-    }
-
     const int M = 24, W = SCREEN_W - 2 * M;
     Display::clearBuffer();
     int yTop = Metrics::drawTopBlock(wd);
 
-    // ===== Indoor zones (2x2) =====
-    Display::text(M, yTop + 30, "Indoor", true, 0.85f);
+    // ===== Metric tiles (2x2) =====
+    Display::text(M, yTop + 30, "Home", true, 0.85f);
     Display::hLine(M, yTop + 40, W, 0);
 
     int gridTop = yTop + 60;
     int gridBot = SCREEN_H - 52;
     int cellW = W / 2, cellH = (gridBot - gridTop) / 2;
-    Display::vLine(M + cellW, gridTop, gridBot - gridTop, 0x80);          // column separator (gray)
-    Display::hLine(M, gridTop + cellH, W, 0x80);                          // row separator (gray)
+    Display::vLine(M + cellW, gridTop, gridBot - gridTop, 0x80);
+    Display::hLine(M, gridTop + cellH, W, 0x80);
     for (int i = 0; i < NUM_ZONES; i++) {
+        const MetricType &mt = typeFor(g_settings.tileType[i]);
+        float v = 0, sv = 0;
+        bool ok = getState(g_settings.tileEntity[i], v);
+        bool secOk = mt.secondary && getState(g_settings.tileEntity2[i], sv);
         int col = i % 2, row = i / 2;
-        drawZoneCell(M + col * cellW + 6, gridTop + row * cellH, cellW - 12,
-                     g_settings.zoneLabel[i], i, z[i]);
+        drawTileCell(M + col * cellW + 6, gridTop + row * cellH, cellW - 12,
+                     g_settings.tileLabel[i], mt, ok, v, secOk, sv);
     }
 
     Metrics::drawFooter();

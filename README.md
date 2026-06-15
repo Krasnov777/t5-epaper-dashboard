@@ -7,8 +7,10 @@ display into a Wi-Fi controlled device with two modes:
 2. **Metrics dashboard** — live local weather (Open-Meteo, no API key),
    sunrise/sunset, and two rotating news headlines from feeds you choose (any
    RSS/Atom), drawn natively on the panel in **portrait** orientation.
-3. **Home dashboard** — the same weather block on top, with a 2×2 grid of indoor
-   **zones** (temperature + humidity) pulled from **Home Assistant**. See
+3. **Home dashboard** — the same weather block on top, with a 2×2 grid of
+   configurable **metric tiles** from **Home Assistant** — room climate
+   (temp/humidity), or any entity: NAS storage, voltage, power, battery, CO₂… Each
+   tile has a **type** that sets its icon + unit. See
    [docs/home-assistant.md](docs/home-assistant.md).
 
 Works in any region: set your coordinates and pick news feeds in the web UI —

@@ -59,11 +59,23 @@ morning, *Photo* in the evening, *Metrics* when you wake).
 
 ---
 
-## 2. Home mode — indoor zones from HA
+## 2. Home mode — metric tiles from HA
 
-`MODE_HOME` keeps the weather block on top and shows a **2×2 grid of zones**
-(Downstairs / Living Room / Upstairs / Bedroom by default), each with an icon +
-**temperature** and optional **humidity**, read directly from HA.
+`MODE_HOME` keeps the weather block on top and shows a **2×2 grid of tiles**.
+Each tile shows **one metric** from any HA entity — not just rooms. Pick a
+**type** per tile; the type sets the icon, unit and formatting:
+
+| Type | Icon | Unit | Notes |
+|---|---|---|---|
+| Living room / Bedroom / Downstairs / Upstairs (climate) | sofa / bed / stairs | ° | + optional humidity (2nd entity) |
+| Temperature | thermometer | ° | |
+| Humidity | droplet | % | |
+| Storage (%) / Storage (GB) | hard disk | % / GB | e.g. NAS free space |
+| Voltage / Power | flash / plug | V / W | e.g. electricity |
+| Battery | battery | % | |
+| CO₂ | molecule | ppm | |
+| Pressure | gauge | hPa | |
+| Custom | gauge | (none) | raw value |
 
 ### a) Create a long-lived token
 HA → click your **profile** (bottom-left) → **Security** → **Long-Lived Access
@@ -74,14 +86,15 @@ Open `http://t5frame.local` → **Home** tab:
 - **HA base URL** — e.g. `http://homeassistant.local:8123` (or `http://192.168.x.x:8123`).
 - **Long-lived token** — paste it (stored on the device only, never shown again /
   never returned by the API).
-- **Zones** — for each zone set a **label**, a **temperature** sensor
-  `entity_id`, and (optionally) a **humidity** sensor `entity_id`. Leave a zone's
-  entities blank to show `--`.
+- **Tiles** — for each of the 4 tiles pick a **type**, set a **label**, and the
+  HA **`entity_id`** (primary value). "2nd entity" is the humidity for climate
+  types. Leave the entity blank to show `--`.
 
-Example entity IDs: `sensor.living_room_temperature`,
-`sensor.bedroom_humidity`, etc. (find them in HA → Developer Tools → States).
+Examples: a climate tile → `sensor.living_room_temperature` (+
+`sensor.living_room_humidity`); a Storage tile → `sensor.nas_disk_free_percent`;
+a Voltage tile → `sensor.grid_voltage`. (Find IDs in HA → Developer Tools → States.)
 
-Hit **Save & show now**. The frame pulls each sensor via
+Hit **Save & show now**. The frame pulls each entity via
 `GET {haUrl}/api/states/{entity_id}` on the metrics refresh interval (default
 15 min).
 

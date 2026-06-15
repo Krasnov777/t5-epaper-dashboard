@@ -32,9 +32,12 @@ struct Settings {
     // Home Assistant integration (MODE_HOME — indoor climate zones)
     String   haUrl    = "";   // e.g. http://homeassistant.local:8123
     String   haToken  = "";   // long-lived access token (write-only; never returned)
-    String   zoneLabel[NUM_ZONES] = {"Downstairs", "Living Room", "Upstairs", "Bedroom"};
-    String   zoneTemp[NUM_ZONES]  = {"", "", "", ""};   // temperature sensor entity_ids
-    String   zoneHum[NUM_ZONES]   = {"", "", "", ""};   // humidity sensor entity_ids
+    // Home-mode tiles: each shows one metric (any HA entity). `type` is a preset
+    // key that bundles icon + unit + decimals (+ optional secondary %).
+    String   tileType[NUM_ZONES]    = {"room_down", "room_living", "room_up", "room_bed"};
+    String   tileLabel[NUM_ZONES]   = {"Downstairs", "Living Room", "Upstairs", "Bedroom"};
+    String   tileEntity[NUM_ZONES]  = {"", "", "", ""};   // primary value entity_id
+    String   tileEntity2[NUM_ZONES] = {"", "", "", ""};   // secondary (e.g. humidity), optional
 
     bool     hasWifi() const { return wifiSsid.length() > 0; }
 };

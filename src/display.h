@@ -43,6 +43,9 @@ enum : uint32_t {
     CLOUDY = 0xF0590, FOG = 0xF0591, LIGHTNING = 0xF0593, PARTLY = 0xF0595, POURING = 0xF0596,
     RAINY = 0xF0597, SNOWY = 0xF0598, SUNNY = 0xF0599, SUNSET_DOWN = 0xF059B, SUNSET_UP = 0xF059C,
     LIGHTNING_RAINY = 0xF067E, STAIRS_UP = 0xF12BD, STAIRS_DOWN = 0xF12BE,
+    // metric-tile icons
+    BATTERY = 0xF0079, FLASH = 0xF0241, GAUGE = 0xF029A, HARDDISK = 0xF02CA,
+    WATER = 0xF058C, POWER_PLUG = 0xF06A5, CO2 = 0xF07E4,
 };
 }
 // Truncate s with an ellipsis to fit maxWidth px at the given scale.

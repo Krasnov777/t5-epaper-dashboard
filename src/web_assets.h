@@ -44,6 +44,10 @@ canvas{width:100%;max-width:240px;border:1px solid var(--line);border-radius:8px
 .chip{font-size:12px;padding:4px 9px;border:1px solid var(--line);border-radius:999px;background:#0e1117;color:var(--ink);cursor:pointer}
 .chip:hover{border-color:var(--acc)}
 .zrow{display:flex;gap:6px;margin-bottom:8px}.zrow input{flex:1;min-width:0}
+.modebar{margin-bottom:14px}
+.badge{display:inline-block;background:rgba(95,211,141,.15);border:1px solid #5fd38d;color:#5fd38d;border-radius:999px;padding:7px 14px;font-size:13px}
+.tile{background:#0e1117;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:10px}
+.tile .row{margin-bottom:6px}.tile .row:last-child{margin-bottom:0}
 .muted{color:var(--mut);font-size:13px}
 .ok{color:#5fd38d}.err{color:#ff6b6b}
 .kv{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding:7px 0;font-size:13px}
@@ -61,11 +65,6 @@ small{color:var(--mut)}
   <span class="pill" id="pFs">—</span>
 </header>
 <main>
-  <div class="seg" id="modeSeg">
-    <button data-mode="0">🖼️ Photos</button>
-    <button data-mode="1">📊 Metrics</button>
-    <button data-mode="2">🏠 Home</button>
-  </div>
   <nav>
     <button data-t="photos" class="active">Photos</button>
     <button data-t="metrics">Metrics</button>
@@ -75,6 +74,7 @@ small{color:var(--mut)}
 
   <!-- PHOTOS -->
   <section id="t-photos">
+    <div class="modebar" id="mb0"></div>
     <div class="card">
       <h2>Upload a photo</h2>
       <p class="sub">Resized &amp; dithered in your browser to portrait 540×960, then sent to the frame.</p>
@@ -108,6 +108,7 @@ small{color:var(--mut)}
 
   <!-- METRICS -->
   <section id="t-metrics" hidden>
+    <div class="modebar" id="mb1"></div>
     <div class="card">
       <h2>Location</h2>
       <p class="sub">City is detected automatically from the coordinates.</p>
@@ -146,8 +147,9 @@ small{color:var(--mut)}
     </div>
   </section>
 
-  <!-- HOME (HA zones) -->
+  <!-- HOME (HA metric tiles) -->
   <section id="t-home" hidden>
+    <div class="modebar" id="mb2"></div>
     <div class="card">
       <h2>Home Assistant</h2>
       <p class="sub">The Home mode shows indoor zones read from HA's REST API. In HA: profile → Security → create a <b>Long-Lived Access Token</b>.</p>
@@ -156,9 +158,9 @@ small{color:var(--mut)}
       <input id="haToken" type="password" placeholder="(unchanged)">
     </div>
     <div class="card">
-      <h2>Zones</h2>
-      <p class="sub">Per zone: a label, a temperature sensor <code>entity_id</code>, and an optional humidity sensor.</p>
-      <div id="zones"></div>
+      <h2>Tiles <small>(4)</small></h2>
+      <p class="sub">Each tile shows one metric. Pick a <b>type</b> (sets the icon + unit), a label, and the HA <code>entity_id</code>. "2nd entity" is the humidity for climate types.</p>
+      <div id="tiles"></div>
       <div class="row">
         <button class="act" id="saveHome" style="width:100%">Save</button>
         <button class="act alt" id="showHome" style="width:100%">Save &amp; show now</button>
@@ -244,8 +246,23 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
   b.classList.add('active');
   ['photos','metrics','home','settings'].forEach(t=>$('#t-'+t).hidden=(t!==b.dataset.t));
 });
-// ---- mode switch ----
-document.querySelectorAll('#modeSeg button').forEach(b=>b.onclick=()=>post('/api/mode',{mode:+b.dataset.mode}).then(load));
+// ---- mode switch (per-tab banner) ----
+function switchMode(m){post('/api/mode',{mode:m}).then(load);}
+function updateModebars(){
+  const m=status.settings.mode;
+  [0,1,2].forEach(mode=>{const el=$('#mb'+mode); if(!el)return;
+    el.innerHTML = (mode===m)
+      ? '<span class="badge">● Active mode</span>'
+      : '<button class="act" style="margin:0" onclick="switchMode('+mode+')">▶ Switch to this mode</button>';});
+}
+const TILE_TYPES=[
+  ['room_living','Living room (climate)'],['room_bed','Bedroom (climate)'],
+  ['room_down','Downstairs (climate)'],['room_up','Upstairs (climate)'],
+  ['temperature','Temperature'],['humidity','Humidity'],
+  ['storage','Storage (%)'],['storage_gb','Storage (GB)'],
+  ['voltage','Voltage'],['power','Power'],['battery','Battery'],
+  ['co2','CO₂'],['pressure','Pressure'],['custom','Custom'],
+];
 
 // ---- status ----
 async function load(){
@@ -259,7 +276,7 @@ async function load(){
   $('#sHeap').textContent=(status.freeHeap/1024|0)+' KB';
   $('#sVer').textContent=status.version||'—';
   $('#ssid').textContent=s.wifiSsid||'—';
-  document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.toggle('on',+b.dataset.mode===s.mode));
+  updateModebars();
   $('#slide').value=s.slideshowSec;
   $('#city').textContent=s.locationName||'—';
   $('#lat').value=s.lat; $('#lon').value=s.lon;
@@ -271,19 +288,21 @@ async function load(){
   $('#refresh').value=s.metricsRefresh; $('#tz').value=s.tz;
   $('#haUrl').value=s.haUrl||'';
   $('#haTokState').textContent=status.haTokenSet?'· set (blank = keep)':'· not set';
-  buildZones();
+  buildTiles();
   renderGallery();
 }
-function buildZones(){
-  const z=(status.settings.zones)||[];
+function buildTiles(){
+  const t=(status.settings.tiles)||[];
+  const esc=v=>(v||'').replace(/"/g,'&quot;');
   let h='';
-  for(let i=0;i<4;i++){const zz=z[i]||{};
-    const esc=v=>(v||'').replace(/"/g,'&quot;');
-    h+=`<div class="zrow"><input id="z${i}l" placeholder="Label" value="${esc(zz.label)}">`
-      +`<input id="z${i}t" placeholder="temp entity_id" value="${esc(zz.temp)}">`
-      +`<input id="z${i}h" placeholder="humidity (optional)" value="${esc(zz.hum)}"></div>`;
+  for(let i=0;i<4;i++){const tt=t[i]||{};
+    const opts=TILE_TYPES.map(([k,n])=>`<option value="${k}" ${k===tt.type?'selected':''}>${n}</option>`).join('');
+    h+=`<div class="tile">
+      <div class="row"><select id="t${i}type">${opts}</select><input id="t${i}label" placeholder="Label" value="${esc(tt.label)}"></div>
+      <div class="row"><input id="t${i}ent" placeholder="entity_id" value="${esc(tt.entity)}"><input id="t${i}ent2" placeholder="2nd entity (humidity)" value="${esc(tt.entity2)}"></div>
+    </div>`;
   }
-  $('#zones').innerHTML=h;
+  $('#tiles').innerHTML=h;
 }
 function renderGallery(){
   const g=$('#gallery'); g.innerHTML='';
@@ -408,9 +427,10 @@ $('#showM').onclick=async()=>{await saveMetrics();await post('/api/mode',{mode:1
 
 // ---- home (HA zones) ----
 async function saveHome(){
-  const zones=[];
-  for(let i=0;i<4;i++)zones.push({label:$('#z'+i+'l').value,temp:$('#z'+i+'t').value,hum:$('#z'+i+'h').value});
-  const body={haUrl:$('#haUrl').value,zones};
+  const tiles=[];
+  for(let i=0;i<4;i++)tiles.push({type:$('#t'+i+'type').value,label:$('#t'+i+'label').value,
+    entity:$('#t'+i+'ent').value,entity2:$('#t'+i+'ent2').value});
+  const body={haUrl:$('#haUrl').value,tiles};
   if($('#haToken').value)body.haToken=$('#haToken').value;
   await post('/api/settings',body);
   $('#haToken').value='';
