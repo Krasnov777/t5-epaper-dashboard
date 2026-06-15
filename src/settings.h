@@ -34,7 +34,8 @@ struct Settings {
     String   haToken  = "";   // long-lived access token (write-only; never returned)
     // Home-mode tiles: each shows one metric (any HA entity). `type` is a preset
     // key that bundles icon + unit + decimals (+ optional secondary %).
-    String   tileType[NUM_ZONES]    = {"room_down", "room_living", "room_up", "room_bed"};
+    String   tileType[NUM_ZONES]    = {"climate", "climate", "climate", "climate"};
+    String   tileIcon[NUM_ZONES]    = {"stairs_down", "sofa", "stairs_up", "bed"};  // "" = use type's default icon
     String   tileLabel[NUM_ZONES]   = {"Downstairs", "Living Room", "Upstairs", "Bedroom"};
     String   tileEntity[NUM_ZONES]  = {"", "", "", ""};   // primary value entity_id
     String   tileEntity2[NUM_ZONES] = {"", "", "", ""};   // secondary (e.g. humidity), optional

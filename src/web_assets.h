@@ -21,6 +21,7 @@ main{max-width:880px;margin:0 auto;padding:18px}
 nav{display:flex;gap:6px;margin-bottom:14px}
 nav button{flex:1;padding:10px;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:14px}
 nav button.active{border-color:var(--acc);color:#fff;box-shadow:inset 0 0 0 1px var(--acc)}
+nav button.modeon{border-color:#5fd38d;box-shadow:inset 0 0 0 2px #5fd38d}
 .seg{display:flex;gap:6px;margin-bottom:16px}
 .seg button{flex:1;padding:11px;background:var(--card);border:1px solid var(--line);border-radius:10px;color:var(--ink);cursor:pointer;font-size:14px}
 .seg button.on{border-color:var(--acc);background:rgba(79,140,255,.16);color:#fff;font-weight:600}
@@ -44,8 +45,8 @@ canvas{width:100%;max-width:240px;border:1px solid var(--line);border-radius:8px
 .chip{font-size:12px;padding:4px 9px;border:1px solid var(--line);border-radius:999px;background:#0e1117;color:var(--ink);cursor:pointer}
 .chip:hover{border-color:var(--acc)}
 .zrow{display:flex;gap:6px;margin-bottom:8px}.zrow input{flex:1;min-width:0}
-.modebar{margin-bottom:14px}
-.badge{display:inline-block;background:rgba(95,211,141,.15);border:1px solid #5fd38d;color:#5fd38d;border-radius:999px;padding:7px 14px;font-size:13px}
+.modebar{margin-top:4px}
+.badge{display:block;text-align:center;background:rgba(95,211,141,.12);border:1px solid #5fd38d;color:#5fd38d;border-radius:9px;padding:10px;font-size:14px}
 .tile{background:#0e1117;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:10px}
 .tile .row{margin-bottom:6px}.tile .row:last-child{margin-bottom:0}
 .muted{color:var(--mut);font-size:13px}
@@ -67,14 +68,13 @@ small{color:var(--mut)}
 <main>
   <nav>
     <button data-t="photos" class="active">Photos</button>
-    <button data-t="metrics">Metrics</button>
-    <button data-t="home">Home</button>
+    <button data-t="metrics">Digest</button>
+    <button data-t="home">Smart Home</button>
     <button data-t="settings">Settings</button>
   </nav>
 
   <!-- PHOTOS -->
   <section id="t-photos">
-    <div class="modebar" id="mb0"></div>
     <div class="card">
       <h2>Upload a photo</h2>
       <p class="sub">Resized &amp; dithered in your browser to portrait 540×960, then sent to the frame.</p>
@@ -104,11 +104,11 @@ small{color:var(--mut)}
       </div>
       <div class="grid" id="gallery"></div>
     </div>
+    <div class="modebar" id="mb0"></div>
   </section>
 
   <!-- METRICS -->
   <section id="t-metrics" hidden>
-    <div class="modebar" id="mb1"></div>
     <div class="card">
       <h2>Location</h2>
       <p class="sub">City is detected automatically from the coordinates.</p>
@@ -145,11 +145,11 @@ small{color:var(--mut)}
       </div>
       <span id="mMsg" class="muted"></span>
     </div>
+    <div class="modebar" id="mb1"></div>
   </section>
 
   <!-- HOME (HA metric tiles) -->
   <section id="t-home" hidden>
-    <div class="modebar" id="mb2"></div>
     <div class="card">
       <h2>Home Assistant</h2>
       <p class="sub">The Home mode shows indoor zones read from HA's REST API. In HA: profile → Security → create a <b>Long-Lived Access Token</b>.</p>
@@ -167,6 +167,7 @@ small{color:var(--mut)}
       </div>
       <span id="hMsg" class="muted"></span>
     </div>
+    <div class="modebar" id="mb2"></div>
   </section>
 
   <!-- SETTINGS -->
@@ -248,20 +249,27 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
 });
 // ---- mode switch (per-tab banner) ----
 function switchMode(m){post('/api/mode',{mode:m}).then(load);}
+const TAB_FOR_MODE={0:'photos',1:'metrics',2:'home'};
 function updateModebars(){
   const m=status.settings.mode;
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('modeon', TAB_FOR_MODE[m]===b.dataset.t));
   [0,1,2].forEach(mode=>{const el=$('#mb'+mode); if(!el)return;
     el.innerHTML = (mode===m)
-      ? '<span class="badge">● Active mode</span>'
-      : '<button class="act" style="margin:0" onclick="switchMode('+mode+')">▶ Switch to this mode</button>';});
+      ? '<span class="badge">✓ This mode is active</span>'
+      : '<button class="act" style="width:100%;margin:0" onclick="switchMode('+mode+')">▶ Turn on this mode</button>';});
 }
 const TILE_TYPES=[
-  ['room_living','Living room (climate)'],['room_bed','Bedroom (climate)'],
-  ['room_down','Downstairs (climate)'],['room_up','Upstairs (climate)'],
+  ['climate','Climate (temp + humidity)'],
   ['temperature','Temperature'],['humidity','Humidity'],
   ['storage','Storage (%)'],['storage_gb','Storage (GB)'],
   ['voltage','Voltage'],['power','Power'],['battery','Battery'],
   ['co2','CO₂'],['pressure','Pressure'],['custom','Custom'],
+];
+const ICON_OPTIONS=[
+  ['','Auto (by type)'],['sofa','Sofa'],['bed','Bed'],['stairs_down','Stairs down'],
+  ['stairs_up','Stairs up'],['home','Home'],['thermometer','Thermometer'],['droplet','Droplet'],
+  ['harddisk','Hard disk'],['flash','Flash'],['power','Power plug'],['battery','Battery'],
+  ['co2','CO₂'],['gauge','Gauge'],
 ];
 
 // ---- status ----
@@ -269,7 +277,7 @@ async function load(){
   status=await (await fetch('/api/status')).json();
   const s=status.settings;
   $('#pIp').textContent=status.ip; $('#sIp').textContent=status.ip;
-  $('#pMode').textContent=s.mode==1?'📊 Metrics':s.mode==2?'🏠 Home':'🖼️ Photo';
+  $('#pMode').textContent=s.mode==1?'📊 Digest':s.mode==2?'🏠 Smart Home':'🖼️ Photo';
   $('#pVer').textContent=status.version||'—';
   const fs=(status.fsUsed/1048576).toFixed(1)+'/'+(status.fsTotal/1048576).toFixed(1)+' MB';
   $('#pFs').textContent=fs; $('#sFs').textContent=fs;
@@ -294,12 +302,13 @@ async function load(){
 function buildTiles(){
   const t=(status.settings.tiles)||[];
   const esc=v=>(v||'').replace(/"/g,'&quot;');
+  const sel=(opts,cur,id)=>`<select id="${id}">`+opts.map(([k,n])=>`<option value="${k}" ${k===(cur||'')?'selected':''}>${n}</option>`).join('')+`</select>`;
   let h='';
   for(let i=0;i<4;i++){const tt=t[i]||{};
-    const opts=TILE_TYPES.map(([k,n])=>`<option value="${k}" ${k===tt.type?'selected':''}>${n}</option>`).join('');
     h+=`<div class="tile">
-      <div class="row"><select id="t${i}type">${opts}</select><input id="t${i}label" placeholder="Label" value="${esc(tt.label)}"></div>
-      <div class="row"><input id="t${i}ent" placeholder="entity_id" value="${esc(tt.entity)}"><input id="t${i}ent2" placeholder="2nd entity (humidity)" value="${esc(tt.entity2)}"></div>
+      <div class="row"><input id="t${i}label" placeholder="Label (e.g. Living Room)" value="${esc(tt.label)}">${sel(TILE_TYPES,tt.type||'climate','t'+i+'type')}</div>
+      <div class="row">${sel(ICON_OPTIONS,tt.icon,'t'+i+'icon')}<input id="t${i}ent" placeholder="entity_id" value="${esc(tt.entity)}"></div>
+      <div class="row"><input id="t${i}ent2" placeholder="2nd entity — humidity (climate only)" value="${esc(tt.entity2)}"></div>
     </div>`;
   }
   $('#tiles').innerHTML=h;
@@ -308,8 +317,8 @@ function renderGallery(){
   const g=$('#gallery'); g.innerHTML='';
   const s=status.settings;
   $('#cnt').textContent='('+status.photos.length+')';
-  $('#curState').textContent = s.mode==2 ? 'Home mode is active.'
-    : s.mode==1 ? 'Metrics mode is active.'
+  $('#curState').textContent = s.mode==2 ? 'Smart Home mode is active.'
+    : s.mode==1 ? 'Digest mode is active.'
     : s.pinnedPhoto ? ('Showing: '+s.pinnedPhoto+' (pinned)')
     : (status.photos.length ? ('Cycling all photos every '+s.slideshowSec+'s') : 'No photos yet — upload one above.');
   status.photos.forEach(p=>{
@@ -428,8 +437,8 @@ $('#showM').onclick=async()=>{await saveMetrics();await post('/api/mode',{mode:1
 // ---- home (HA zones) ----
 async function saveHome(){
   const tiles=[];
-  for(let i=0;i<4;i++)tiles.push({type:$('#t'+i+'type').value,label:$('#t'+i+'label').value,
-    entity:$('#t'+i+'ent').value,entity2:$('#t'+i+'ent2').value});
+  for(let i=0;i<4;i++)tiles.push({type:$('#t'+i+'type').value,icon:$('#t'+i+'icon').value,
+    label:$('#t'+i+'label').value,entity:$('#t'+i+'ent').value,entity2:$('#t'+i+'ent2').value});
   const body={haUrl:$('#haUrl').value,tiles};
   if($('#haToken').value)body.haToken=$('#haToken').value;
   await post('/api/settings',body);

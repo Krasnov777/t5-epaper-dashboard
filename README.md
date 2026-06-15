@@ -4,13 +4,13 @@ Firmware for the **LilyGo T5 4.7" E-Paper V2.3 (ESP32-S3)** that turns the
 display into a Wi-Fi controlled device with two modes:
 
 1. **Photo frame** — upload images from a browser; they're shown as a slideshow.
-2. **Metrics dashboard** — live local weather (Open-Meteo, no API key),
-   sunrise/sunset, and two rotating news headlines from feeds you choose (any
-   RSS/Atom), drawn natively on the panel in **portrait** orientation.
-3. **Home dashboard** — the same weather block on top, with a 2×2 grid of
+2. **Digest** — live local weather (Open-Meteo, no API key), sunrise/sunset, and
+   two rotating news headlines from feeds you choose (any RSS/Atom), drawn
+   natively on the panel in **portrait** orientation.
+3. **Smart Home** — the same weather block on top, with a 2×2 grid of
    configurable **metric tiles** from **Home Assistant** — room climate
    (temp/humidity), or any entity: NAS storage, voltage, power, battery, CO₂… Each
-   tile has a **type** that sets its icon + unit. See
+   tile has a **type** (unit/format) + a pickable **icon** + free-text label. See
    [docs/home-assistant.md](docs/home-assistant.md).
 
 Works in any region: set your coordinates and pick news feeds in the web UI —

@@ -40,9 +40,22 @@ static void docToSettings(JsonDocument &doc) {
         JsonArray t = doc["tiles"].as<JsonArray>();
         for (int i = 0; i < NUM_ZONES && i < (int)t.size(); i++) {
             if (t[i]["type"].is<const char *>())    g_settings.tileType[i]    = t[i]["type"].as<String>();
+            if (t[i]["icon"].is<const char *>())    g_settings.tileIcon[i]    = t[i]["icon"].as<String>();
             if (t[i]["label"].is<const char *>())   g_settings.tileLabel[i]   = t[i]["label"].as<String>();
             if (t[i]["entity"].is<const char *>())  g_settings.tileEntity[i]  = t[i]["entity"].as<String>();
             if (t[i]["entity2"].is<const char *>()) g_settings.tileEntity2[i] = t[i]["entity2"].as<String>();
+        }
+    }
+    // Migrate old per-room types -> single "climate" type + a room icon
+    for (int i = 0; i < NUM_ZONES; i++) {
+        if (g_settings.tileType[i].startsWith("room_")) {
+            if (g_settings.tileIcon[i].length() == 0) {
+                String r = g_settings.tileType[i];
+                g_settings.tileIcon[i] = (r == "room_living") ? "sofa"
+                                       : (r == "room_bed")    ? "bed"
+                                       : (r == "room_up")     ? "stairs_up" : "stairs_down";
+            }
+            g_settings.tileType[i] = "climate";
         }
     }
 
@@ -73,6 +86,7 @@ static void settingsToDoc(JsonDocument &doc, bool includeSecrets) {
     for (int i = 0; i < NUM_ZONES; i++) {
         JsonObject o = t.add<JsonObject>();
         o["type"]    = g_settings.tileType[i];
+        o["icon"]    = g_settings.tileIcon[i];
         o["label"]   = g_settings.tileLabel[i];
         o["entity"]  = g_settings.tileEntity[i];
         o["entity2"] = g_settings.tileEntity2[i];

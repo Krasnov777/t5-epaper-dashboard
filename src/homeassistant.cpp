@@ -55,10 +55,7 @@ struct MetricType {
     bool        secondary;   // show entity2 as a "%" line (humidity-style)
 };
 static const MetricType TYPES[] = {
-    {"room_living", Display::Icon::SOFA,        "°",     1, true},
-    {"room_bed",    Display::Icon::BED,         "°",     1, true},
-    {"room_down",   Display::Icon::STAIRS_DOWN, "°",     1, true},
-    {"room_up",     Display::Icon::STAIRS_UP,   "°",     1, true},
+    {"climate",     Display::Icon::THERMO,      "°",     1, true},
     {"temperature", Display::Icon::THERMO,      "°",     1, false},
     {"humidity",    Display::Icon::WATER,       "%",     0, false},
     {"storage",     Display::Icon::HARDDISK,    "%",     0, false},
@@ -75,15 +72,33 @@ static const MetricType &typeFor(const String &key) {
     return TYPES[sizeof(TYPES) / sizeof(TYPES[0]) - 1];   // custom
 }
 
+// Selectable tile icons ("" -> fall back to the type's default icon).
+static uint32_t iconFor(const String &key) {
+    if (key == "sofa")        return Display::Icon::SOFA;
+    if (key == "bed")         return Display::Icon::BED;
+    if (key == "stairs_down") return Display::Icon::STAIRS_DOWN;
+    if (key == "stairs_up")   return Display::Icon::STAIRS_UP;
+    if (key == "home")        return Display::Icon::HOME;
+    if (key == "thermometer") return Display::Icon::THERMO;
+    if (key == "droplet")     return Display::Icon::WATER;
+    if (key == "harddisk")    return Display::Icon::HARDDISK;
+    if (key == "flash")       return Display::Icon::FLASH;
+    if (key == "power")       return Display::Icon::POWER_PLUG;
+    if (key == "battery")     return Display::Icon::BATTERY;
+    if (key == "co2")         return Display::Icon::CO2;
+    if (key == "gauge")       return Display::Icon::GAUGE;
+    return 0;   // unknown/empty -> use type default
+}
+
 static void drawDroplet(int x, int y, int s) {
     Display::drawCircle(x, y, s, 0);
     Display::line(x - s + 1, y - 1, x, y - 2 * s, 0);
     Display::line(x + s - 1, y - 1, x, y - 2 * s, 0);
 }
 
-static void drawTileCell(int cx, int cy, int cw, const String &label, const MetricType &mt,
-                         bool ok, float v, bool secOk, float sv) {
-    Display::icon(mt.icon, cx + 34, cy + 30, 0.6f);
+static void drawTileCell(int cx, int cy, int cw, const String &label, uint32_t iconCp,
+                         const MetricType &mt, bool ok, float v, bool secOk, float sv) {
+    Display::icon(iconCp, cx + 34, cy + 30, 0.6f);
     Display::text(cx + 66, cy + 24, Display::fitText(label, cw - 74, 0.62f), false, 0.62f);
 
     char val[24];
@@ -117,12 +132,14 @@ void render(const String &ip) {
     Display::hLine(M, gridTop + cellH, W, 0x80);
     for (int i = 0; i < NUM_ZONES; i++) {
         const MetricType &mt = typeFor(g_settings.tileType[i]);
+        uint32_t iconCp = iconFor(g_settings.tileIcon[i]);
+        if (iconCp == 0) iconCp = mt.icon;
         float v = 0, sv = 0;
         bool ok = getState(g_settings.tileEntity[i], v);
         bool secOk = mt.secondary && getState(g_settings.tileEntity2[i], sv);
         int col = i % 2, row = i / 2;
         drawTileCell(M + col * cellW + 6, gridTop + row * cellH, cellW - 12,
-                     g_settings.tileLabel[i], mt, ok, v, secOk, sv);
+                     g_settings.tileLabel[i], iconCp, mt, ok, v, secOk, sv);
     }
 
     Metrics::drawFooter();

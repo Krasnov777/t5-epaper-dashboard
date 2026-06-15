@@ -65,30 +65,35 @@ morning, *Photo* in the evening, *Metrics* when you wake).
 Each tile shows **one metric** from any HA entity — not just rooms. Pick a
 **type** per tile; the type sets the icon, unit and formatting:
 
-| Type | Icon | Unit | Notes |
-|---|---|---|---|
-| Living room / Bedroom / Downstairs / Upstairs (climate) | sofa / bed / stairs | ° | + optional humidity (2nd entity) |
-| Temperature | thermometer | ° | |
-| Humidity | droplet | % | |
-| Storage (%) / Storage (GB) | hard disk | % / GB | e.g. NAS free space |
-| Voltage / Power | flash / plug | V / W | e.g. electricity |
-| Battery | battery | % | |
-| CO₂ | molecule | ppm | |
-| Pressure | gauge | hPa | |
-| Custom | gauge | (none) | raw value |
+Each tile has a **Type** (sets unit/format), an **Icon** (pick any — defaults to
+the type's icon), a free-text **Label**, and the **entity**:
+
+| Type | Unit | Notes |
+|---|---|---|
+| Climate | ° | + optional humidity (2nd entity) |
+| Temperature / Humidity | ° / % | |
+| Storage (%) / Storage (GB) | % / GB | e.g. NAS free space |
+| Voltage / Power | V / W | e.g. electricity |
+| Battery / CO₂ / Pressure | % / ppm / hPa | |
+| Custom | (none) | raw value |
+
+Selectable **icons**: sofa, bed, stairs up/down, home, thermometer, droplet,
+hard disk, flash, power plug, battery, CO₂, gauge. So a "Climate" tile labeled
+*Living Room* with the **sofa** icon, or a "Storage" tile labeled *NAS* with the
+**hard disk** icon.
 
 ### a) Create a long-lived token
 HA → click your **profile** (bottom-left) → **Security** → **Long-Lived Access
 Tokens** → *Create Token*. Copy it (shown once).
 
 ### b) Configure on the frame
-Open `http://t5frame.local` → **Home** tab:
+Open `http://t5frame.local` → **Smart Home** tab:
 - **HA base URL** — e.g. `http://homeassistant.local:8123` (or `http://192.168.x.x:8123`).
 - **Long-lived token** — paste it (stored on the device only, never shown again /
   never returned by the API).
-- **Tiles** — for each of the 4 tiles pick a **type**, set a **label**, and the
-  HA **`entity_id`** (primary value). "2nd entity" is the humidity for climate
-  types. Leave the entity blank to show `--`.
+- **Tiles** — for each of the 4 tiles pick a **type** + **icon**, set a free-text
+  **label**, and the HA **`entity_id`** (primary value). "2nd entity" is the
+  humidity for the Climate type. Leave the entity blank to show `--`.
 
 Examples: a climate tile → `sensor.living_room_temperature` (+
 `sensor.living_room_humidity`); a Storage tile → `sensor.nas_disk_free_percent`;
