@@ -72,21 +72,23 @@ static const MetricType &typeFor(const String &key) {
     return TYPES[sizeof(TYPES) / sizeof(TYPES[0]) - 1];   // custom
 }
 
-// Selectable tile icons ("" -> fall back to the type's default icon).
+// Selectable tile icons ("" / unknown -> fall back to the type's default icon).
+// Keep keys + codepoints in sync with ICON_OPTIONS in web_assets.h and icons.h.
+struct IconMap { const char *key; uint32_t cp; };
+static const IconMap ICONMAP[] = {
+    {"home", 0xF02DC}, {"sofa", 0xF04B9}, {"bed", 0xF02E3}, {"stairs_down", 0xF12BE}, {"stairs_up", 0xF12BD},
+    {"thermometer", 0xF050F}, {"droplet", 0xF058C}, {"humidity", 0xF058E}, {"harddisk", 0xF02CA},
+    {"flash", 0xF0241}, {"power", 0xF06A5}, {"battery", 0xF0079}, {"co2", 0xF07E4}, {"gauge", 0xF029A},
+    {"fridge", 0xF0290}, {"washer", 0xF072A}, {"tv", 0xF0502}, {"shower", 0xF09A0}, {"garage", 0xF06D9},
+    {"bulb", 0xF0335}, {"desk", 0xF1239}, {"pool", 0xF0606}, {"door", 0xF081A}, {"window", 0xF11DB},
+    {"fan", 0xF0210}, {"radiator", 0xF0438}, {"fire", 0xF0238}, {"snowflake", 0xF0717}, {"thermostat", 0xF0393},
+    {"solar", 0xF0A72}, {"grid", 0xF0D3E}, {"ev", 0xF05F1}, {"car", 0xF010B}, {"server", 0xF048B},
+    {"wifi", 0xF05A9}, {"router", 0xF0469}, {"chip", 0xF061A}, {"memory", 0xF035B}, {"leaf", 0xF032A},
+    {"paw", 0xF03E9}, {"motion", 0xF0D91}, {"lock", 0xF033E}, {"blinds", 0xF00AC}, {"coffee", 0xF0176},
+    {"cutlery", 0xF0A70},
+};
 static uint32_t iconFor(const String &key) {
-    if (key == "sofa")        return Display::Icon::SOFA;
-    if (key == "bed")         return Display::Icon::BED;
-    if (key == "stairs_down") return Display::Icon::STAIRS_DOWN;
-    if (key == "stairs_up")   return Display::Icon::STAIRS_UP;
-    if (key == "home")        return Display::Icon::HOME;
-    if (key == "thermometer") return Display::Icon::THERMO;
-    if (key == "droplet")     return Display::Icon::WATER;
-    if (key == "harddisk")    return Display::Icon::HARDDISK;
-    if (key == "flash")       return Display::Icon::FLASH;
-    if (key == "power")       return Display::Icon::POWER_PLUG;
-    if (key == "battery")     return Display::Icon::BATTERY;
-    if (key == "co2")         return Display::Icon::CO2;
-    if (key == "gauge")       return Display::Icon::GAUGE;
+    for (auto &m : ICONMAP) if (key == m.key) return m.cp;
     return 0;   // unknown/empty -> use type default
 }
 

@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 // Firmware version (shown in the UI / status, handy for confirming OTA worked).
-#define FW_VERSION "1.8.0"
+#define FW_VERSION "1.9.0"
 
 // ---- Display geometry (LilyGo T5 4.7" V2.3 / ED047TC1) ----
 // The panel is physically 960 x 540, 4-bit grayscale (16 levels), addressed in

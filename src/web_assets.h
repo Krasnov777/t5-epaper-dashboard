@@ -10,6 +10,7 @@ static const char INDEX_HTML[] PROGMEM = R"HTMLPAGE(<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>T5 E-Paper Frame</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
 <style>
 :root{--bg:#11141a;--card:#1b2029;--ink:#e8ecf2;--mut:#8b95a7;--acc:#4f8cff;--line:#2a313d;}
 *{box-sizing:border-box}
@@ -49,6 +50,13 @@ canvas{width:100%;max-width:240px;border:1px solid var(--line);border-radius:8px
 .badge{display:block;text-align:center;background:rgba(95,211,141,.12);border:1px solid #5fd38d;color:#5fd38d;border-radius:9px;padding:10px;font-size:14px}
 .tile{background:#0e1117;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:10px}
 .tile .row{margin-bottom:6px}.tile .row:last-child{margin-bottom:0}
+.iconbtn{flex:0 0 auto;width:46px;height:40px;background:#0e1117;border:1px solid var(--line);border-radius:9px;color:var(--ink);cursor:pointer;font-size:22px;line-height:1}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:10;padding:16px}
+.modal[hidden]{display:none}
+.modal-box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;max-width:420px;width:100%;max-height:80vh;overflow:auto}
+.icon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:8px;margin-top:10px}
+.icon-grid button{aspect-ratio:1;background:#0e1117;border:1px solid var(--line);border-radius:9px;color:var(--ink);cursor:pointer;font-size:26px;display:flex;align-items:center;justify-content:center}
+.icon-grid button.sel{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
 .muted{color:var(--mut);font-size:13px}
 .ok{color:#5fd38d}.err{color:#ff6b6b}
 .kv{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding:7px 0;font-size:13px}
@@ -201,6 +209,13 @@ small{color:var(--mut)}
     </div>
   </section>
 </main>
+<div id="iconModal" hidden class="modal" onclick="if(event.target===this)closeIconModal()">
+  <div class="modal-box">
+    <h2 style="margin:0 0 4px">Choose an icon</h2>
+    <p class="sub">Tap an icon, or “Auto” to use the type's default.</p>
+    <div class="icon-grid" id="iconGrid"></div>
+  </div>
+</div>
 <script>
 const $=s=>document.querySelector(s);
 let packed=null, status=null;
@@ -265,12 +280,36 @@ const TILE_TYPES=[
   ['voltage','Voltage'],['power','Power'],['battery','Battery'],
   ['co2','CO₂'],['pressure','Pressure'],['custom','Custom'],
 ];
+// [iconKey, mdi-css-class] — keep in sync with iconFor()/icons.h in firmware.
 const ICON_OPTIONS=[
-  ['','Auto (by type)'],['sofa','Sofa'],['bed','Bed'],['stairs_down','Stairs down'],
-  ['stairs_up','Stairs up'],['home','Home'],['thermometer','Thermometer'],['droplet','Droplet'],
-  ['harddisk','Hard disk'],['flash','Flash'],['power','Power plug'],['battery','Battery'],
-  ['co2','CO₂'],['gauge','Gauge'],
+  ['',''],
+  ['home','mdi-home'],['sofa','mdi-sofa'],['bed','mdi-bed'],['stairs_down','mdi-stairs-down'],['stairs_up','mdi-stairs-up'],
+  ['thermometer','mdi-thermometer'],['droplet','mdi-water'],['humidity','mdi-water-percent'],['harddisk','mdi-harddisk'],['flash','mdi-flash'],
+  ['power','mdi-power-plug'],['battery','mdi-battery'],['co2','mdi-molecule-co2'],['gauge','mdi-gauge'],
+  ['fridge','mdi-fridge'],['washer','mdi-washing-machine'],['tv','mdi-television'],['shower','mdi-shower'],['garage','mdi-garage'],
+  ['bulb','mdi-lightbulb'],['desk','mdi-desk'],['pool','mdi-pool'],['door','mdi-door'],['window','mdi-window-closed-variant'],
+  ['fan','mdi-fan'],['radiator','mdi-radiator'],['fire','mdi-fire'],['snowflake','mdi-snowflake'],['thermostat','mdi-thermostat'],
+  ['solar','mdi-solar-power'],['grid','mdi-transmission-tower'],['ev','mdi-ev-station'],['car','mdi-car'],['server','mdi-server'],
+  ['wifi','mdi-wifi'],['router','mdi-router-wireless'],['chip','mdi-chip'],['memory','mdi-memory'],['leaf','mdi-leaf'],
+  ['paw','mdi-paw'],['motion','mdi-motion-sensor'],['lock','mdi-lock'],['blinds','mdi-blinds'],['coffee','mdi-coffee'],['cutlery','mdi-silverware-fork-knife'],
 ];
+function mdiClassFor(key){const o=ICON_OPTIONS.find(([k])=>k===(key||''));return o?o[1]:'';}
+function iconGlyphHtml(key){const c=mdiClassFor(key);return c?`<span class="mdi ${c}"></span>`:'<span style="font-size:12px">Auto</span>';}
+let s_iconTarget=-1;
+function openIconModal(i){
+  s_iconTarget=i;
+  const cur=$('#t'+i+'icon').value||'';
+  $('#iconGrid').innerHTML=ICON_OPTIONS.map(([k,c])=>
+    `<button type="button" class="${k===cur?'sel':''}" onclick="pickIcon('${k}')">${c?`<span class="mdi ${c}"></span>`:'<span style="font-size:13px">Auto</span>'}</button>`).join('');
+  $('#iconModal').hidden=false;
+}
+function closeIconModal(){$('#iconModal').hidden=true;}
+function pickIcon(key){
+  const i=s_iconTarget; if(i<0)return;
+  $('#t'+i+'icon').value=key;
+  $('#t'+i+'iconbtn').innerHTML=iconGlyphHtml(key);
+  closeIconModal();
+}
 
 // ---- status ----
 async function load(){
@@ -307,7 +346,7 @@ function buildTiles(){
   for(let i=0;i<4;i++){const tt=t[i]||{};
     h+=`<div class="tile">
       <div class="row"><input id="t${i}label" placeholder="Label (e.g. Living Room)" value="${esc(tt.label)}">${sel(TILE_TYPES,tt.type||'climate','t'+i+'type')}</div>
-      <div class="row">${sel(ICON_OPTIONS,tt.icon,'t'+i+'icon')}<input id="t${i}ent" placeholder="entity_id" value="${esc(tt.entity)}"></div>
+      <div class="row"><button type="button" class="iconbtn" id="t${i}iconbtn" title="Choose icon" onclick="openIconModal(${i})">${iconGlyphHtml(tt.icon)}</button><input type="hidden" id="t${i}icon" value="${esc(tt.icon)}"><input id="t${i}ent" placeholder="entity_id" value="${esc(tt.entity)}"></div>
       <div class="row"><input id="t${i}ent2" placeholder="2nd entity — humidity (climate only)" value="${esc(tt.entity2)}"></div>
     </div>`;
   }

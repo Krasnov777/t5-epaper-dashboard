@@ -77,10 +77,11 @@ the type's icon), a free-text **Label**, and the **entity**:
 | Battery / CO₂ / Pressure | % / ppm / hPa | |
 | Custom | (none) | raw value |
 
-Selectable **icons**: sofa, bed, stairs up/down, home, thermometer, droplet,
-hard disk, flash, power plug, battery, CO₂, gauge. So a "Climate" tile labeled
+The **icon** is chosen from a visual picker (~45 Material Design Icons: rooms,
+appliances, climate, energy, network/devices, etc.). So a "Climate" tile labeled
 *Living Room* with the **sofa** icon, or a "Storage" tile labeled *NAS* with the
-**hard disk** icon.
+**server** icon. (The picker renders the glyphs via the MDI web-font from a CDN,
+so the configuring browser needs internet — the device itself does not.)
 
 ### a) Create a long-lived token
 HA → click your **profile** (bottom-left) → **Security** → **Long-Lived Access
