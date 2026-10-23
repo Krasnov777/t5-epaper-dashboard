@@ -11,6 +11,11 @@
 #include "storage.h"
 #include "modes.h"
 #include "web.h"
+#if __has_include("secrets.h")
+#include "secrets.h"
+#else
+#error "src/secrets.h is missing: copy src/secrets.h.example to src/secrets.h and set the passwords"
+#endif
 
 static DNSServer s_dns;
 static Button2   s_btn;
@@ -53,7 +58,7 @@ static void startApMode() {
 
 static void startOTA() {
     ArduinoOTA.setHostname(MDNS_HOST);
-    // ArduinoOTA.setPassword("...");   // uncomment to require a push password
+    ArduinoOTA.setPassword(OTA_PASSWORD);
     ArduinoOTA.onStart([](){
         screenMessage("Firmware update", "Receiving over Wi-Fi…", "Do not power off");
     });

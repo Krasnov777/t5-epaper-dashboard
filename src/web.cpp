@@ -11,10 +11,20 @@
 #include <AsyncJson.h>
 #include <ArduinoJson.h>
 #include <Update.h>
+#if __has_include("secrets.h")
+#include "secrets.h"
+#else
+#error "src/secrets.h is missing: copy src/secrets.h.example to src/secrets.h and set the passwords"
+#endif
 
 namespace Web {
 
 static AsyncWebServer s_server(80);
+
+// HTTP Basic auth for every route in normal mode (setup/AP mode stays open so
+// the device can be provisioned). Body callbacks run *before* middleware, so
+// the upload handlers below check s_auth themselves.
+static AsyncAuthenticationMiddleware s_auth;
 static bool   s_setup        = false;
 static bool   s_reboot       = false;
 static bool   s_renderDirty  = false;
@@ -53,6 +63,7 @@ static String statusJson() {
 
 static void onPhotoBody(AsyncWebServerRequest *req, uint8_t *data, size_t len,
                         size_t index, size_t total) {
+    if (!s_auth.allowed(req)) return;
     if (index == 0) {
         s_upOk = false;
         if (total != PHOTO_BYTES) {
@@ -73,6 +84,7 @@ static void onPhotoBody(AsyncWebServerRequest *req, uint8_t *data, size_t len,
 static bool s_otaOk = false;
 static void onUpdateBody(AsyncWebServerRequest *req, uint8_t *data, size_t len,
                          size_t index, size_t total) {
+    if (!s_auth.allowed(req)) return;
     if (index == 0) {
         s_otaOk = false;
         size_t sz = total > 0 ? total : UPDATE_SIZE_UNKNOWN;
@@ -207,8 +219,18 @@ static void registerMainRoutes() {
 
 void begin(bool setupMode) {
     s_setup = setupMode;
-    if (setupMode) registerSetupRoutes();
-    else           registerMainRoutes();
+    if (setupMode) {
+        registerSetupRoutes();
+    } else {
+        s_auth.setUsername(WEB_USER);
+        s_auth.setPassword(WEB_PASSWORD);
+        s_auth.setRealm("T5 Frame");
+        s_auth.setAuthFailureMessage("Authentication required");
+        s_auth.setAuthType(AsyncAuthType::AUTH_BASIC);
+        s_auth.generateHash();
+        s_server.addMiddleware(&s_auth);
+        registerMainRoutes();
+    }
     s_server.begin();
     log_i("HTTP server started (%s mode)", setupMode ? "setup" : "main");
 }

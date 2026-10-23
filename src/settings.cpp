@@ -25,7 +25,13 @@ static void docToSettings(JsonDocument &doc) {
     if (doc["tz"].is<const char *>())           g_settings.tz           = doc["tz"].as<String>();
 
     // Home Assistant
-    if (doc["haUrl"].is<const char *>())   g_settings.haUrl   = doc["haUrl"].as<String>();
+    if (doc["haUrl"].is<const char *>()) {
+        String url = doc["haUrl"].as<String>();
+        // A token was entered for the old server; never send it to a new one
+        // unless the caller supplies the token again in the same request.
+        if (url != g_settings.haUrl && !doc["haToken"].is<const char *>()) g_settings.haToken = "";
+        g_settings.haUrl = url;
+    }
     if (doc["haToken"].is<const char *>()) g_settings.haToken = doc["haToken"].as<String>();
     // Legacy zones (temp+humidity) -> tiles
     if (doc["zones"].is<JsonArray>()) {

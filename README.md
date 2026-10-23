@@ -64,6 +64,11 @@ If nothing appears: swap the cable, then tap the **RST** button.
 
 ## Build & flash (PlatformIO)
 
+Create `src/secrets.h` first (the build fails without it): copy
+`src/secrets.h.example` and set `OTA_PASSWORD` and `WEB_PASSWORD`. The web UI
+and every `/api/*` route then require HTTP Basic auth (`WEB_USER` /
+`WEB_PASSWORD`); Wi-Fi setup (AP) mode stays open so a new device can be provisioned.
+
 ```bash
 # Build only (validates everything compiles)
 pio run -e T5-ePaper-S3
@@ -94,6 +99,7 @@ Once the firmware is installed, you can update wirelessly two ways:
   an "updating" screen, flashes, and reboots.
 - **From PlatformIO:**
   ```bash
+  export T5_OTA_PASSWORD=...                 # = OTA_PASSWORD in src/secrets.h
   pio run -e T5-ePaper-S3-ota -t upload      # pushes to t5frame.local
   ```
 

@@ -14,3 +14,6 @@
 
 # Device-side runtime data (never in the repo)
 settings.json
+
+# Device credentials (see src/secrets.h.example)
+src/secrets.h
