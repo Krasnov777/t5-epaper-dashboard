@@ -57,8 +57,8 @@ pio device monitor                   # serial @115200
   port — always pass `-e T5-ePaper-S3` for USB.
 - **OTA (preferred after first flash):**
   - Web: Settings → Firmware update → pick `.pio/build/T5-ePaper-S3/firmware.bin`.
-  - CLI: `curl -X POST --data-binary @firmware.bin http://t5frame.local/api/update`
-  - PlatformIO espota: `pio run -e T5-ePaper-S3-ota -t upload` — **blocked by the
+  - CLI: `curl -u admin:<WEB_PASSWORD> -X POST --data-binary @firmware.bin http://t5frame.local/api/update`
+  - PlatformIO espota: `T5_OTA_PASSWORD=<OTA_PASSWORD> pio run -e T5-ePaper-S3-ota -t upload` — **blocked by the
     macOS application firewall** (the device must connect back to the espota
     server). Allow incoming for Python or use web OTA instead.
 - Dual-OTA partitions (`partitions_custom.csv`): app0/app1 (3.5 MB each) +
@@ -160,7 +160,7 @@ All HTTPS via `WiFiClientSecure::setInsecure()`.
 
 ## 8. Web server & API (`web.cpp`)
 
-`ESPAsyncWebServer` on :80. Heavy work (display renders, reboot) is deferred from
+`ESPAsyncWebServer` on :80. **Auth:** in normal mode an `AsyncAuthenticationMiddleware` (HTTP Basic, `WEB_USER`/`WEB_PASSWORD` from the gitignored `src/secrets.h`) guards every route; the AP/setup captive portal stays open. Body callbacks run *before* middleware in this library, so `onUpdateBody`/`onPhotoBody` call `s_auth.allowed()` themselves. Without that, an unauthenticated POST could still write flash. ArduinoOTA uses `OTA_PASSWORD`. Heavy work (display renders, reboot) is deferred from
 the async-tcp task to `loop()` via flags (`Web::loopTasks()`).
 
 | Method | Path | Body | Action |

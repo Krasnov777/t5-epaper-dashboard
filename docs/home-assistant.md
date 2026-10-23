@@ -111,4 +111,5 @@ Hit **Save & show now**. The frame pulls each entity via
   current temp as a template sensor first.
 - HTTP and HTTPS HA URLs both work (HTTPS uses an insecure TLS client — fine on a
   trusted LAN).
-- The token is sensitive; it lives only in the device's `settings.json`.
+- The token is sensitive; it lives only in the device's `settings.json` and is never returned by `/api/status` (`haTokenSet` only). Changing `haUrl` without sending `haToken` in the same request clears the stored token, so it can't be redirected to another host.
+- Use a token from a **non-admin** HA user: the device only reads entity states.
