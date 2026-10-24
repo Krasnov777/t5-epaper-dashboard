@@ -160,7 +160,7 @@ All HTTPS via `WiFiClientSecure::setInsecure()`.
 
 ## 8. Web server & API (`web.cpp`)
 
-`ESPAsyncWebServer` on :80. **Auth:** in normal mode an `AsyncAuthenticationMiddleware` (HTTP Basic, `WEB_USER`/`WEB_PASSWORD` from the gitignored `src/secrets.h`) guards every route; the AP/setup captive portal stays open. Body callbacks run *before* middleware in this library, so `onUpdateBody`/`onPhotoBody` call `s_auth.allowed()` themselves. Without that, an unauthenticated POST could still write flash. ArduinoOTA uses `OTA_PASSWORD`. Heavy work (display renders, reboot) is deferred from
+`ESPAsyncWebServer` on :80. **Auth:** in normal mode an `AsyncAuthenticationMiddleware` (HTTP Basic, `WEB_USER`/`WEB_PASSWORD` from the gitignored `src/secrets.h`) guards every route; the AP/setup captive portal stays open. Body callbacks run *before* middleware in this library, so `onUpdateBody`/`onPhotoBody` call `s_auth.allowed()` themselves. Without that, an unauthenticated POST could still write flash. A second middleware answers **403** unless the `Host` header is the device's own IP or hostname (DNS-rebinding guard), and refuses POSTs or WebSocket upgrades whose `Origin` names another site (CSRF guard), because a browser would otherwise replay the cached Basic-auth login. The upload callbacks run that check too. ArduinoOTA uses `OTA_PASSWORD`. Heavy work (display renders, reboot) is deferred from
 the async-tcp task to `loop()` via flags (`Web::loopTasks()`).
 
 | Method | Path | Body | Action |

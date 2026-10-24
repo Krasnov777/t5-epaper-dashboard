@@ -25,6 +25,28 @@ static AsyncWebServer s_server(80);
 // the device can be provisioned). Body callbacks run *before* middleware, so
 // the upload handlers below check s_auth themselves.
 static AsyncAuthenticationMiddleware s_auth;
+
+// Answer only requests addressed to this device (DNS-rebinding guard) and
+// refuse state changes or WebSocket upgrades started by another site (CSRF):
+// a cached Basic-auth login would otherwise be replayed by the browser.
+static bool hostAllowed(String h) {
+    int colon = h.indexOf(':');
+    if (colon >= 0) h = h.substring(0, colon);
+    h.toLowerCase();
+    String name = String(MDNS_HOST);
+    name.toLowerCase();
+    return h.isEmpty() || h == WiFi.localIP().toString() || h == name || h == name + ".local";
+}
+static bool requestAllowed(AsyncWebServerRequest *r) {
+    if (!hostAllowed(r->host())) return false;
+    bool changesState = r->method() != HTTP_GET && r->method() != HTTP_HEAD && r->method() != HTTP_OPTIONS;
+    if ((changesState || r->hasHeader("Upgrade")) && r->hasHeader("Origin")) {
+        String o = r->getHeader("Origin")->value();
+        int s = o.indexOf("://");
+        if (s < 0 || !hostAllowed(o.substring(s + 3))) return false;
+    }
+    return true;
+}
 static bool   s_setup        = false;
 static bool   s_reboot       = false;
 static bool   s_renderDirty  = false;
@@ -63,7 +85,7 @@ static String statusJson() {
 
 static void onPhotoBody(AsyncWebServerRequest *req, uint8_t *data, size_t len,
                         size_t index, size_t total) {
-    if (!s_auth.allowed(req)) return;
+    if (!requestAllowed(req) || !s_auth.allowed(req)) return;
     if (index == 0) {
         s_upOk = false;
         if (total != PHOTO_BYTES) {
@@ -84,7 +106,7 @@ static void onPhotoBody(AsyncWebServerRequest *req, uint8_t *data, size_t len,
 static bool s_otaOk = false;
 static void onUpdateBody(AsyncWebServerRequest *req, uint8_t *data, size_t len,
                          size_t index, size_t total) {
-    if (!s_auth.allowed(req)) return;
+    if (!requestAllowed(req) || !s_auth.allowed(req)) return;
     if (index == 0) {
         s_otaOk = false;
         size_t sz = total > 0 ? total : UPDATE_SIZE_UNKNOWN;
@@ -228,6 +250,10 @@ void begin(bool setupMode) {
         s_auth.setAuthFailureMessage("Authentication required");
         s_auth.setAuthType(AsyncAuthType::AUTH_BASIC);
         s_auth.generateHash();
+        s_server.addMiddleware([](AsyncWebServerRequest *r, ArMiddlewareNext next) {
+            if (!requestAllowed(r)) { r->send(403, "text/plain", "Forbidden"); return; }
+            next();
+        });
         s_server.addMiddleware(&s_auth);
         registerMainRoutes();
     }
