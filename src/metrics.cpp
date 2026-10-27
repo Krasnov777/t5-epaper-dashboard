@@ -224,7 +224,8 @@ static int hhmmToMin(const String &t) {
 }
 
 // Draw the NEXT sun event (MDI icon + label + time) right-aligned in the header.
-static void drawNextSunEvent(const WeatherData &wd, int M) {
+// Returns the left x of the drawn block (SCREEN_W - M if nothing was drawn).
+static int drawNextSunEvent(const WeatherData &wd, int M) {
     int nm = nowMinutes();
     int sr = hhmmToMin(wd.sunrise), ss = hhmmToMin(wd.sunset);
     bool rising; String t;
@@ -233,13 +234,15 @@ static void drawNextSunEvent(const WeatherData &wd, int M) {
         else if (nm < ss) { rising = false; t = wd.sunset; }
         else              { rising = true;  t = wd.sunriseTomorrow.length() ? wd.sunriseTomorrow : wd.sunrise; }
     } else { rising = false; t = wd.sunset; }
-    if (t.length() == 0) return;
+    if (t.length() == 0) return SCREEN_W - M;
 
     int cx = SCREEN_W - M - 24, cy = 52;
     Display::icon(rising ? Display::Icon::SUNSET_UP : Display::Icon::SUNSET_DOWN, cx, cy, 0.5f);
     int tx = cx - 42;
-    Display::textRight(tx, 42, rising ? "Sunrise" : "Sunset", false, 0.62f);
+    String label = rising ? "Sunrise" : "Sunset";
+    Display::textRight(tx, 42, label, false, 0.62f);
     Display::textRight(tx, 80, t, true, 0.95f);
+    return tx - max(Display::textWidth(label, 0.62f), Display::textWidth(t, 0.95f));
 }
 
 // Reverse-geocode lat/lon -> city name (BigDataCloud, free, no key).
@@ -276,7 +279,11 @@ static String cityName() {
             if (c != g_settings.locationName) { g_settings.locationName = c; settingsSave(); }
         }
     }
-    return s_city.length() ? s_city : g_settings.locationName;
+    String c = s_city.length() ? s_city : g_settings.locationName;
+    // Geocoder sometimes returns the municipality ("Gemeente Amsterdam").
+    for (const char *pre : {"Gemeente ", "Municipality of ", "City of "})
+        if (c.startsWith(pre)) { c = c.substring(strlen(pre)); break; }
+    return c;
 }
 
 // Header + current weather + 3-day forecast (shared by metrics & home modes).
@@ -286,10 +293,10 @@ int drawTopBlock(const WeatherData &wd) {
     const int W = SCREEN_W - 2 * M;   // 492
 
     // ===== Header =====
-    Display::text(M, 50, cityName(), true);
+    int sunLeft = wd.ok ? drawNextSunEvent(wd, M) : SCREEN_W - M;
+    Display::text(M, 50, Display::fitText(cityName(), sunLeft - 16 - M), true);
     String d = nowDate();
     if (d.length()) Display::text(M, 88, d, false, 0.62f);
-    if (wd.ok) drawNextSunEvent(wd, M);
     Display::hLine(M, 102, W, 0);
 
     // ===== Current weather =====
